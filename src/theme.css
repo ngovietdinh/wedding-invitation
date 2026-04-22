@@ -1,0 +1,58 @@
+/* ============================================================
+   THEME FILE — Green Sage + White Modern
+   Import file này vào main.jsx hoặc App.jsx:
+   import "./theme.css"
+   ============================================================
+
+   PALETTE:
+   --white:        #FFFFFF      nền chính, sạch tuyệt đối
+   --off-white:    #F7F9F6      nền section xen kẽ, có hint xanh nhẹ
+   --green-light:  #E8F0E8      nền card, tag
+   --green-mid:    #7FA882      accent nhẹ, border
+   --green:        #4A7C59      màu chính — button, tiêu đề accent
+   --green-dark:   #2D5A3D      màu đậm — hover, text chính
+   --green-deep:   #1A3A28      text tối, heading
+   --sage:         #9DB89F      text phụ, placeholder
+   --white-text:   #FFFFFF      text trên nền xanh
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=DM+Sans:wght@200;300;400;500&display=swap');
+
+:root {
+  /* Core palette */
+  --white:       #FFFFFF;
+  --off-white:   #F7F9F6;
+  --green-light: #E8F0E8;
+  --green-mid:   #7FA882;
+  --green:       #4A7C59;
+  --green-dark:  #2D5A3D;
+  --green-deep:  #1A3A28;
+  --sage:        #8FA892;
+  --sage-light:  #B8CCBA;
+
+  /* Typography */
+  --serif: 'Playfair Display', Georgia, serif;
+  --sans:  'DM Sans', sans-serif;
+
+  /* Spacing */
+  --section-pad: clamp(4rem, 8vw, 6rem);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--white);
+  color: var(--green-deep);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--off-white); }
+::-webkit-scrollbar-thumb { background: var(--green-mid); border-radius: 3px; }
+
+/* ── Selection ── */
+::selection { background: var(--green); color: var(--white); }
