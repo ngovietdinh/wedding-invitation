@@ -6,15 +6,15 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
 const MEDIA = [
-  { id:1,  type:"image", src:"/gallery/couple-01.jpg",    thumb:"/gallery/couple-01.jpg",    alt:"Bảo Ngân & Viết Định", category:"couple",     size:"tall",   caption:"Lần đầu chụp ảnh cùng nhau" },
-  { id:2,  type:"image", src:"/gallery/couple-02.jpg",    thumb:"/gallery/couple-02.jpg",    alt:"Bảo Ngân & Viết Định", category:"couple",     size:"square", caption:"" },
-  { id:3,  type:"image", src:"/gallery/couple-03.jpg",    thumb:"/gallery/couple-03.jpg",    alt:"",                     category:"couple",     size:"wide",   caption:"Chuyến đi Đà Nẵng" },
-  { id:4,  type:"image", src:"/gallery/engagement-01.jpg",thumb:"/gallery/engagement-01.jpg",alt:"Lễ đính hôn",          category:"engagement", size:"tall",   caption:"Ngày anh hỏi" },
-  { id:5,  type:"image", src:"/gallery/engagement-02.jpg",thumb:"/gallery/engagement-02.jpg",alt:"Lễ đính hôn",          category:"engagement", size:"square", caption:"" },
-  { id:6,  type:"image", src:"/gallery/engagement-03.jpg",thumb:"/gallery/engagement-03.jpg",alt:"Nhẫn đính hôn",        category:"engagement", size:"square", caption:"Chiếc nhẫn em đã đợi" },
-  { id:7,  type:"image", src:"/gallery/wedding-01.jpg",   thumb:"/gallery/wedding-01.jpg",   alt:"Ảnh cưới",             category:"wedding",    size:"wide",   caption:"" },
-  { id:8,  type:"image", src:"/gallery/wedding-02.jpg",   thumb:"/gallery/wedding-02.jpg",   alt:"Ảnh cưới",             category:"wedding",    size:"tall",   caption:"Áo dài trắng" },
-  { id:9,  type:"image", src:"/gallery/wedding-03.jpg",   thumb:"/gallery/wedding-03.jpg",   alt:"Ảnh cưới",             category:"wedding",    size:"square", caption:"" },
+  { id:1,  type:"image", src:"/gallery/1.jpg",    thumb:"/gallery/1.jpg",    alt:"Bảo Ngân & Viết Định", category:"couple",     size:"tall",   caption:"Lần đầu chụp ảnh cùng nhau" },
+  { id:2,  type:"image", src:"/gallery/2.jpg",    thumb:"/gallery/2.jpg",    alt:"Bảo Ngân & Viết Định", category:"couple",     size:"square", caption:"" },
+  { id:3,  type:"image", src:"/gallery/3.jpg",    thumb:"/gallery/3.jpg",    alt:"",                     category:"couple",     size:"wide",   caption:"Chuyến đi Đà Nẵng" },
+  { id:4,  type:"image", src:"/gallery/1.jpg",thumb:"/gallery/1.jpg",alt:"Lễ đính hôn",          category:"engagement", size:"tall",   caption:"Ngày anh hỏi" },
+  { id:5,  type:"image", src:"/gallery/2.jpg",thumb:"/gallery/2.jpg",alt:"Lễ đính hôn",          category:"engagement", size:"square", caption:"" },
+  { id:6,  type:"image", src:"/gallery/3.jpg",thumb:"/gallery/3.jpg",alt:"Nhẫn đính hôn",        category:"engagement", size:"square", caption:"Chiếc nhẫn em đã đợi" },
+  { id:7,  type:"image", src:"/gallery/1.jpg",   thumb:"/gallery/1.jpg",   alt:"Ảnh cưới",             category:"wedding",    size:"wide",   caption:"" },
+  { id:8,  type:"image", src:"/gallery/2.jpg",   thumb:"/gallery/2.jpg",   alt:"Ảnh cưới",             category:"wedding",    size:"tall",   caption:"Áo dài trắng" },
+  { id:9,  type:"image", src:"/gallery/3.jpg",   thumb:"/gallery/3.jpg",   alt:"Ảnh cưới",             category:"wedding",    size:"square", caption:"" },
   { id:10, type:"video", src:"/gallery/highlight.mp4",    poster:"/gallery/video-poster.jpg",alt:"Video highlight",      category:"video",      size:"wide",   caption:"Our Story — Highlight Film", duration:"3:24" },
 ];
 
