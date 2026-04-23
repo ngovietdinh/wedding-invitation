@@ -1,552 +1,493 @@
 // ============================================================
-// CURTAIN INTRO — Thiệp gấp đôi, mở ra từ giữa như thiệp thật
-// Lăn chuột 1 cái → 2 tờ thiệp mở ra trái/phải
+// CURTAIN INTRO v4 — Chuyển giao mượt hoàn toàn
+// Fix: content luôn render sẵn dưới rèm, không re-mount
+// Thiệp mở → rèm fade → content hiện lên không bị giật
 // ============================================================
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export default function CurtainIntro({ children }) {
-  const [state, setState] = useState("waiting");
-  // "waiting" → "opening" → "done"
+  const [phase, setPhase] = useState("idle");
+  // idle → ready → opening → done
 
+  const leftRef    = useRef(null);
+  const rightRef   = useRef(null);
+  const foldRef    = useRef(null);
+  const backdropRef= useRef(null);
+  const rafRef     = useRef(null);
+
+  // Bước 1: mount xong → phase "ready" (tránh flash)
   useEffect(() => {
-    if (state !== "waiting") return;
-    const open = (e) => {
-      if (e && e.preventDefault) e.preventDefault();
-      setState("opening");
-    };
+    const t = requestAnimationFrame(() => setPhase("ready"));
+    return () => cancelAnimationFrame(t);
+  }, []);
+
+  // Bước 2: lock scroll khi chưa mở
+  useEffect(() => {
+    if (phase === "idle" || phase === "ready") {
+      document.body.style.overflow = "hidden";
+      window.scrollTo(0, 0);
+    } else if (phase === "done") {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [phase]);
+
+  // Bước 3: listen trigger
+  useEffect(() => {
+    if (phase !== "ready") return;
+    const open = () => setPhase("opening");
     const onWheel = (e) => { e.preventDefault(); open(); };
-    let startY = 0;
-    const onTS = (e) => { startY = e.touches[0].clientY; };
-    const onTE = (e) => { if (startY - e.changedTouches[0].clientY > 30) open(); };
+    let sy = 0;
+    const onTS = (e) => { sy = e.touches[0].clientY; };
+    const onTE = (e) => { if (sy - e.changedTouches[0].clientY > 24) open(); };
     window.addEventListener("wheel",      onWheel, { passive: false });
-    window.addEventListener("touchstart", onTS,    { passive: true });
-    window.addEventListener("touchend",   onTE,    { passive: true });
+    window.addEventListener("touchstart", onTS,    { passive: true  });
+    window.addEventListener("touchend",   onTE,    { passive: true  });
     return () => {
       window.removeEventListener("wheel",      onWheel);
       window.removeEventListener("touchstart", onTS);
       window.removeEventListener("touchend",   onTE);
     };
-  }, [state]);
+  }, [phase]);
 
+  // Bước 4: RAF animation khi opening
   useEffect(() => {
-    if (state !== "opening") return;
-    const t = setTimeout(() => setState("done"), 2000);
-    return () => clearTimeout(t);
-  }, [state]);
+    if (phase !== "opening") return;
+    const L  = leftRef.current;
+    const R  = rightRef.current;
+    const F  = foldRef.current;
+    const BD = backdropRef.current;
+    if (!L || !R || !BD) return;
 
-  useEffect(() => {
-    if (state === "waiting" || state === "opening") {
-      document.body.style.overflow = "hidden";
-      window.scrollTo(0, 0);
-    } else {
-      window.scrollTo(0, 0);
-      document.body.style.overflow = "";
+    const OPEN_DUR   = 1400; // ms mở thiệp
+    const FADE_START = 0.52; // bắt đầu fade backdrop khi thiệp mở 52%
+    const FADE_DUR   = 0.48; // phần còn lại dành cho fade
+    const start = performance.now();
+
+    cancelAnimationFrame(rafRef.current);
+
+    function easeInOutCubic(t) {
+      return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
     }
-    return () => { document.body.style.overflow = ""; };
-  }, [state]);
+    function easeOutQuart(t) {
+      return 1 - Math.pow(1-t, 4);
+    }
 
-  const isOpen = state === "opening" || state === "done";
-  const isDone = state === "done";
+    function frame(now) {
+      const t    = Math.min((now - start) / OPEN_DUR, 1);
+      const ease = easeInOutCubic(t);
+
+      // === Thiệp mở ===
+      const angle = ease * 65;
+      const tx    = ease * 10;
+      const sy2   = 1 - ease * 0.012;
+      L.style.transform = `rotateY(-${angle}deg) translateX(-${tx}px) scaleY(${sy2})`;
+      R.style.transform = `rotateY(${angle}deg) translateX(${tx}px) scaleY(${sy2})`;
+
+      // Bóng mép
+      const sh = Math.min(ease * 1.8, 1);
+      L.style.setProperty("--sh", String(sh));
+      R.style.setProperty("--sh", String(sh));
+
+      // Fold line ẩn dần
+      if (F) F.style.opacity = String(Math.max(0, 1 - ease * 3));
+
+      // === Fade backdrop khi thiệp đã mở đủ ===
+      if (t > FADE_START) {
+        const ft   = (t - FADE_START) / FADE_DUR;
+        const fEase = easeOutQuart(Math.min(ft, 1));
+        // Backdrop mờ dần
+        BD.style.opacity = String(1 - fEase);
+      }
+
+      if (t < 1) {
+        rafRef.current = requestAnimationFrame(frame);
+      } else {
+        // Done — xóa rèm khỏi DOM
+        setPhase("done");
+        // Unlock scroll
+        document.body.style.overflow = "";
+        window.scrollTo(0, 0);
+      }
+    }
+
+    rafRef.current = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [phase]);
+
+  const isDone  = phase === "done";
+  const isReady = phase === "ready";
+  const isOpening = phase === "opening";
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=DM+Sans:wght@200;300;400&family=Great+Vibes&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@300;400&family=Great+Vibes&display=swap');
 
-        /* ── Nền màn hình ── */
-        .ci-backdrop {
-          position: fixed; inset: 0; z-index: 8000;
-          background: #0d1a12;
+        /* ── Content luôn ở dưới, không bị layout shift ── */
+        .ci-page {
+          position: relative;
+          z-index: 0;
+        }
+
+        /* ── Backdrop cố định phía trên ── */
+        .ci-bd {
+          position: fixed; inset: 0; z-index: 9000;
+          background: #0a1510;
           display: flex; align-items: center; justify-content: center;
-          pointer-events: ${isDone ? "none" : "all"};
-          opacity: ${isDone ? 0 : 1};
-          transition: ${isDone ? "opacity 0.5s ease 0.8s" : "none"};
+          will-change: opacity;
+          pointer-events: all;
+        }
+        .ci-bd.done {
+          pointer-events: none;
+          display: none;
         }
 
         /* ── Wrapper thiệp ── */
-        .ci-card-wrap {
+        .ci-wrap {
           position: relative;
-          width: min(90vw, 800px);
-          height: min(85vh, 580px);
+          width: min(88vw, 780px);
+          height: min(82vh, 560px);
           display: flex;
-          perspective: 1400px;
-          filter: drop-shadow(0 40px 80px rgba(0,0,0,0.6));
+          perspective: 1800px;
+          perspective-origin: 50% 46%;
         }
 
-        /* ── Tờ trái (nửa trái thiệp) ── */
-        .ci-left-panel {
-          position: relative;
-          width: 50%; height: 100%;
+        /* ── Tờ trái ── */
+        .ci-L {
+          position: relative; width: 50%; height: 100%;
           transform-origin: right center;
-          transform-style: preserve-3d;
-          transform: ${isOpen ? "rotateY(-28deg) translateX(-6px)" : "rotateY(0deg)"};
-          transition: ${isOpen ? "transform 1.6s cubic-bezier(0.76,0,0.18,1)" : "none"};
           will-change: transform;
-          z-index: 2;
-          border-radius: 12px 0 0 12px;
+          border-radius: 10px 0 0 10px;
           overflow: hidden;
-          background: #fff;
-          /* Giấy thiệp */
-          background-image:
-            radial-gradient(ellipse at 20% 20%, rgba(232,240,232,0.6) 0%, transparent 60%),
-            linear-gradient(135deg, #ffffff 0%, #f7faf7 100%);
+          background:
+            radial-gradient(ellipse 80% 60% at 22% 28%, rgba(232,240,232,0.5) 0%, transparent 65%),
+            linear-gradient(150deg, #ffffff 0%, #f5f9f5 100%);
+          box-shadow: inset -1px 0 0 rgba(74,124,89,0.15);
         }
-        /* Đường gấp */
-        .ci-left-panel::after {
-          content: '';
-          position: absolute; top: 0; right: 0; bottom: 0; width: 3px;
-          background: linear-gradient(180deg,
-            transparent 0%, rgba(74,124,89,0.15) 20%,
-            rgba(74,124,89,0.3) 50%,
-            rgba(74,124,89,0.15) 80%, transparent 100%
-          );
-        }
-        /* Bóng đổ khi mở */
-        .ci-left-panel::before {
-          content: '';
-          position: absolute; top: 0; right: 0; bottom: 0; width: 40px;
-          background: linear-gradient(90deg, transparent, rgba(0,0,0,0.08));
-          z-index: 1; pointer-events: none;
-          opacity: ${isOpen ? 1 : 0};
-          transition: opacity 0.5s ease 0.5s;
+        .ci-L::after {
+          content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 55px;
+          background: linear-gradient(90deg, transparent, rgba(0,0,0,calc(var(--sh,0) * 0.13)));
+          pointer-events: none; z-index: 5;
         }
 
-        /* ── Tờ phải (nửa phải thiệp) ── */
-        .ci-right-panel {
-          position: relative;
-          width: 50%; height: 100%;
+        /* ── Tờ phải ── */
+        .ci-R {
+          position: relative; width: 50%; height: 100%;
           transform-origin: left center;
-          transform-style: preserve-3d;
-          transform: ${isOpen ? "rotateY(28deg) translateX(6px)" : "rotateY(0deg)"};
-          transition: ${isOpen ? "transform 1.6s cubic-bezier(0.76,0,0.18,1)" : "none"};
           will-change: transform;
-          z-index: 2;
-          border-radius: 0 12px 12px 0;
+          border-radius: 0 10px 10px 0;
           overflow: hidden;
-          /* Nền xanh đậm như mẫu */
-          background: linear-gradient(145deg, #2d5a3d 0%, #1a3a28 60%, #132318 100%);
+          background: linear-gradient(155deg, #1e4230 0%, #2d5a3d 45%, #1a3828 100%);
+          box-shadow: inset 1px 0 0 rgba(127,168,130,0.15);
         }
-        .ci-right-panel::before {
-          content: '';
-          position: absolute; top: 0; left: 0; bottom: 0; width: 40px;
-          background: linear-gradient(90deg, rgba(0,0,0,0.12), transparent);
-          z-index: 1; pointer-events: none;
-          opacity: ${isOpen ? 1 : 0};
-          transition: opacity 0.5s ease 0.5s;
+        .ci-R::after {
+          content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 55px;
+          background: linear-gradient(90deg, rgba(0,0,0,calc(var(--sh,0) * 0.15)), transparent);
+          pointer-events: none; z-index: 5;
         }
 
-        /* ── Hoa trang trí SVG ── */
-        .flower-tl { position:absolute; top:-10px; left:-10px; width:120px; opacity:0.85; pointer-events:none; }
-        .flower-tr { position:absolute; top:-10px; right:-10px; width:120px; opacity:0.85; pointer-events:none; transform:scaleX(-1); }
-        .flower-bl { position:absolute; bottom:-10px; left:-10px; width:100px; opacity:0.7; pointer-events:none; transform:scaleY(-1); }
-        .flower-br { position:absolute; bottom:-10px; right:-10px; width:100px; opacity:0.7; pointer-events:none; transform:scale(-1); }
+        /* ── Gáy thiệp ── */
+        .ci-fold {
+          position: absolute; top: 0; bottom: 0;
+          left: calc(50% - 1px); width: 2px; z-index: 20;
+          background: linear-gradient(180deg,
+            transparent 0%, rgba(127,168,130,0.3) 20%,
+            rgba(127,168,130,0.45) 50%,
+            rgba(127,168,130,0.3) 80%, transparent 100%
+          );
+          pointer-events: none;
+          will-change: opacity;
+        }
 
-        /* ── Nội dung tờ trái ── */
-        .ci-left-content {
+        /* ── Shadow dưới thiệp ── */
+        .ci-shadow {
+          position: absolute; bottom: -18px; left: 8%; right: 8%;
+          height: 18px; border-radius: 50%;
+          background: rgba(0,0,0,0.38);
+          filter: blur(11px);
+        }
+
+        /* ── Nội dung thiệp ── */
+        .ci-lc {
           position: absolute; inset: 0;
           display: flex; flex-direction: column;
           align-items: center; justify-content: center;
-          padding: clamp(1.2rem,4vw,2.5rem);
+          padding: clamp(1.2rem,5vw,2.8rem);
           text-align: center; gap: 0;
         }
-
-        /* ── Nội dung tờ phải ── */
-        .ci-right-content {
+        .ci-rc {
           position: absolute; inset: 0;
           display: flex; flex-direction: column;
           align-items: center; justify-content: flex-end;
-          padding: clamp(1rem,3vw,2rem) clamp(1rem,3vw,2rem) clamp(1.2rem,3vw,2rem);
+          padding: clamp(1rem,3vw,2rem);
           gap: 0.3rem;
         }
 
-        /* ── Animations ── */
-        @keyframes itemUp {
-          from { opacity:0; transform:translateY(14px); }
-          to   { opacity:1; transform:translateY(0); }
+        /* ── Vân nền ── */
+        .ci-tex {
+          position: absolute; inset: 0; pointer-events: none;
+          background-image: repeating-linear-gradient(
+            45deg, transparent 0, transparent 17px,
+            rgba(127,168,130,0.028) 17px, rgba(127,168,130,0.028) 18px
+          );
         }
-        @keyframes fadeIn {
-          from { opacity:0; } to { opacity:1; }
-        }
-        @keyframes hintBounce {
-          0%,100% { transform:translateX(-50%) translateY(0); }
-          50%      { transform:translateX(-50%) translateY(6px); }
-        }
-        @keyframes shimmerGold {
-          0%,100% { opacity:0.6; } 50% { opacity:1; }
+        .ci-bord {
+          position: absolute; top: 10px; left: 10px; right: 10px; bottom: 10px;
+          border: 1px solid rgba(127,168,130,0.2); pointer-events: none;
         }
 
+        /* ── Hint & Skip ── */
         .ci-hint {
-          position: fixed; bottom: 2rem; left: 50%;
+          position: fixed; bottom: 2.2rem; left: 50%;
           transform: translateX(-50%);
-          z-index: 8010; pointer-events: none;
-          display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
-          animation: itemUp 0.8s ease 1.5s both, hintBounce 2s ease-in-out 2.3s infinite;
-          opacity: ${isOpen ? 0 : 1};
-          transition: opacity 0.3s ease;
+          z-index: 9010; pointer-events: none;
+          display: flex; flex-direction: column;
+          align-items: center; gap: 0.45rem;
+          animation: hintIn 0.9s ease 1.4s both;
         }
-
+        @keyframes hintIn {
+          from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        .ci-arrow { animation: bounce 1.8s ease-in-out infinite; }
+        @keyframes bounce {
+          0%,100% { transform: translateY(0); }
+          50%      { transform: translateY(6px); }
+        }
         .ci-skip {
-          position: fixed; bottom: 1.5rem; right: 1.5rem;
-          z-index: 8010;
-          background: rgba(74,124,89,0.1);
-          border: 1px solid rgba(127,168,130,0.25);
-          color: rgba(184,204,186,0.6);
-          font-family: 'DM Sans', sans-serif;
-          font-size: 0.55rem; letter-spacing: 0.3em;
-          text-transform: uppercase; padding: 0.45rem 1rem;
-          cursor: pointer; transition: all 0.25s;
-          animation: itemUp 0.8s ease 1.8s both;
-          opacity: ${isOpen ? 0 : 1};
+          position: fixed; bottom: 1.6rem; right: 1.6rem;
+          z-index: 9010;
+          background: rgba(127,168,130,0.08);
+          border: 1px solid rgba(127,168,130,0.2);
+          color: rgba(184,204,186,0.58);
+          font-family: 'Jost', sans-serif; font-weight: 300;
+          font-size: 9.5px; letter-spacing: 0.28em; text-transform: uppercase;
+          padding: 0.42rem 1rem; cursor: pointer; transition: all 0.22s;
+          animation: hintIn 0.9s ease 1.8s both;
         }
         .ci-skip:hover {
-          background: rgba(74,124,89,0.2);
-          border-color: rgba(127,168,130,0.5);
-          color: #B8CCBA;
+          background: rgba(127,168,130,0.16);
+          color: #B8CCBA; border-color: rgba(127,168,130,0.4);
         }
 
-        /* Page content */
-        .ci-page-content {
-          opacity: ${isOpen ? 1 : 0};
-          transition: ${isOpen ? "opacity 1s ease 1s" : "none"};
+        /* ── Item animations ── */
+        @keyframes itemUp {
+          from { opacity: 0; transform: translateY(13px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
+        .a1 { animation: itemUp 0.85s ease 0.2s  both; }
+        .a2 { animation: itemUp 0.85s ease 0.35s both; }
+        .a3 { animation: itemUp 0.9s  ease 0.5s  both; }
+        .a4 { animation: itemUp 0.85s ease 0.62s both; }
+        .a5 { animation: itemUp 0.85s ease 0.75s both; }
+        .a6 { animation: itemUp 0.85s ease 0.88s both; }
+        .a7 { animation: itemUp 0.9s  ease 1.02s both; }
 
-        /* Đường kẻ trang trí */
-        .deco-line {
-          width: 100%; height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(74,124,89,0.3), transparent);
-          margin: 0.6rem 0;
-        }
-        .deco-line-white {
-          width: 60%; height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-          margin: 0.5rem 0;
-        }
-
-        /* Diamond shape */
-        .diamond {
-          width: 44px; height: 44px;
-          background: #2d5a3d;
-          transform: rotate(45deg);
-          display: flex; align-items: center; justify-content: center;
-          margin: 0.4rem 0;
-          animation: shimmerGold 3s ease-in-out infinite;
-        }
-        .diamond-inner {
-          transform: rotate(-45deg);
-          color: #fff;
-          font-family: 'DM Sans', sans-serif;
-          font-weight: 500; font-size: 1rem;
-          letter-spacing: 0;
-        }
+        /* ── Deco ── */
+        .dl  { width:100%; height:1px; background:linear-gradient(90deg,transparent,rgba(74,124,89,0.22),transparent); }
+        .dlw { width:55%;  height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.28),transparent); }
+        .diamond { width:40px; height:40px; background:#2d5a3d; transform:rotate(45deg); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .diamond-n { transform:rotate(-45deg); font-family:'Cormorant Garamond',serif; font-weight:400; font-size:clamp(0.85rem,2.2vw,1.05rem); color:#fff; }
       `}</style>
 
-      {/* ── Nội dung trang (ẩn cho đến khi mở) ── */}
-      <div className="ci-page-content">{children}</div>
+      {/* ─── Content luôn render sẵn — KHÔNG bị unmount ─── */}
+      <div className="ci-page">
+        {children}
+      </div>
 
+      {/* ─── Rèm phủ lên — chỉ xóa khi done ─── */}
       {!isDone && (
-        <div className="ci-backdrop">
-          <div className="ci-card-wrap">
+        <div
+          className="ci-bd"
+          ref={backdropRef}
+          style={{ opacity: 1 }}
+        >
+          <div className="ci-wrap">
+            <div className="ci-shadow"/>
 
-            {/* ══ TỜ TRÁI — Nội dung thiệp ══ */}
-            <div className="ci-left-panel">
-              {/* Hoa góc */}
-              <FlowerSVG className="flower-tl" color="#4A7C59" />
-              <FlowerSVG className="flower-tr" color="#4A7C59" />
-              <FlowerSVG className="flower-bl" color="#7FA882" />
-              <FlowerSVG className="flower-br" color="#7FA882" />
-
-              <div className="ci-left-content">
-                {/* Eyebrow */}
-                <p style={{
-                  fontFamily:"'DM Sans',sans-serif", fontWeight:300,
-                  fontSize:"clamp(0.45rem,1.2vw,0.6rem)", letterSpacing:"0.4em",
-                  textTransform:"uppercase", color:"#4A7C59",
-                  marginBottom:"0.5rem",
-                  animation:"itemUp 0.8s ease 0.2s both",
-                }}>TRÂN TRỌNG KÍNH MỜI</p>
-
-                <div className="deco-line" style={{ animation:"itemUp 0.8s ease 0.3s both" }}/>
-
-                {/* Nội dung mời */}
-                <p style={{
-                  fontFamily:"'DM Sans',sans-serif", fontWeight:200,
-                  fontSize:"clamp(0.5rem,1.3vw,0.65rem)", color:"#5A7A62",
-                  lineHeight:1.8, letterSpacing:"0.05em",
-                  animation:"itemUp 0.8s ease 0.35s both",
-                  marginBottom:"0.3rem",
-                }}>
-                  ĐẾN DỰ BUỔI TIỆC RƯỢU<br/>
-                  CHUNG VUI CÙNG GIA ĐÌNH CHÚNG TÔI TẠI
-                </p>
-
-                {/* Tên địa điểm */}
-                <p style={{
-                  fontFamily:"'Great Vibes',cursive",
-                  fontSize:"clamp(1.4rem,4vw,2.2rem)",
-                  color:"#1A3A28", lineHeight:1.1,
-                  animation:"itemUp 0.9s ease 0.45s both",
-                }}>Nhà hàng của chúng tôi</p>
-
-                <p style={{
-                  fontFamily:"'DM Sans',sans-serif", fontWeight:200,
-                  fontSize:"clamp(0.45rem,1.1vw,0.6rem)", color:"#5A7A62",
-                  lineHeight:1.7, animation:"itemUp 0.8s ease 0.5s both",
-                }}>
-                  123 Đường ABC, Phường XYZ<br/>
-                  Quận 1, TP. Huế
-                </p>
-
-                <div className="deco-line" style={{ animation:"itemUp 0.8s ease 0.55s both" }}/>
-
-                {/* Ngày giờ */}
-                <div style={{
-                  display:"flex", alignItems:"center", gap:"0.8rem",
-                  animation:"itemUp 0.9s ease 0.6s both",
-                  margin:"0.3rem 0",
-                }}>
-                  <div style={{ textAlign:"right" }}>
-                    <p style={{ fontFamily:"'DM Sans',sans-serif", fontWeight:300, fontSize:"clamp(0.45rem,1.1vw,0.58rem)", color:"#5A7A62", letterSpacing:"0.2em", textTransform:"uppercase", margin:0 }}>THỨ HAI</p>
-                    <p style={{ fontFamily:"'DM Sans',sans-serif", fontWeight:200, fontSize:"clamp(0.4rem,1vw,0.55rem)", color:"#7FA882", margin:0 }}>LÚC 11:00</p>
+            {/* TỜ TRÁI */}
+            <div className="ci-L" ref={leftRef}>
+              <Flower pos="tl" c="#4A7C59"/><Flower pos="tr" c="#4A7C59"/>
+              <Flower pos="bl" c="#7FA882"/><Flower pos="br" c="#7FA882"/>
+              <div className="ci-lc">
+                <p className="a1" style={S.eyebrow}>TRÂN TRỌNG KÍNH MỜI</p>
+                <div className="a2 dl" style={{marginBottom:'0.5rem'}}/>
+                <p className="a2" style={S.body}>ĐẾN DỰ BUỔI TIỆC RƯỢU<br/>CHUNG VUI CÙNG GIA ĐÌNH CHÚNG TÔI TẠI</p>
+                <p className="a3" style={S.script}>Nhà hàng của chúng tôi</p>
+                <p className="a3" style={{...S.body,marginBottom:'0.3rem'}}>123 Đường ABC, Phường XYZ<br/>Quận 1, TP. Huế</p>
+                <div className="a4 dl" style={{margin:'0.32rem 0'}}/>
+                <div className="a4" style={{display:'flex',alignItems:'center',gap:'0.7rem',margin:'0.28rem 0'}}>
+                  <div style={{textAlign:'right'}}>
+                    <p style={S.tag}>THỨ HAI</p>
+                    <p style={S.tagSub}>LÚC 11:00</p>
                   </div>
-
-                  <div className="diamond">
-                    <span className="diamond-inner" style={{ fontSize:"clamp(0.9rem,2.5vw,1.2rem)" }}>26</span>
-                  </div>
-
-                  <div style={{ textAlign:"left" }}>
-                    <p style={{ fontFamily:"'DM Sans',sans-serif", fontWeight:300, fontSize:"clamp(0.45rem,1.1vw,0.58rem)", color:"#5A7A62", letterSpacing:"0.2em", textTransform:"uppercase", margin:0 }}>THÁNG 04</p>
-                    <p style={{ fontFamily:"'DM Sans',sans-serif", fontWeight:200, fontSize:"clamp(0.4rem,1vw,0.55rem)", color:"#7FA882", margin:0 }}>NĂM 2026</p>
+                  <div className="diamond"><span className="diamond-n">26</span></div>
+                  <div style={{textAlign:'left'}}>
+                    <p style={S.tag}>THÁNG 04</p>
+                    <p style={S.tagSub}>NĂM 2026</p>
                   </div>
                 </div>
-
-                <div className="deco-line" style={{ animation:"itemUp 0.8s ease 0.65s both" }}/>
-
-                <p style={{
-                  fontFamily:"'DM Sans',sans-serif", fontWeight:200,
-                  fontSize:"clamp(0.42rem,1vw,0.55rem)", color:"#7FA882",
-                  letterSpacing:"0.08em", fontStyle:"italic",
-                  animation:"itemUp 0.8s ease 0.7s both",
-                }}>
+                <div className="a5 dl" style={{margin:'0.32rem 0'}}/>
+                <p className="a5" style={{...S.body,fontStyle:'italic',color:'#7FA882',marginBottom:'0.32rem'}}>
                   ( NHẰM NGÀY 09 THÁNG 03 NĂM QUÝ MÃO )
                 </p>
-
-                <div className="deco-line" style={{ animation:"itemUp 0.8s ease 0.75s both" }}/>
-
-                <p style={{
-                  fontFamily:"'DM Sans',sans-serif", fontWeight:200,
-                  fontSize:"clamp(0.42rem,1vw,0.55rem)", color:"#5A7A62",
-                  lineHeight:1.8, letterSpacing:"0.05em",
-                  animation:"itemUp 0.8s ease 0.8s both",
-                }}>
-                  SỰ HIỆN DIỆN CỦA .............<br/>
-                  LÀ NIỀM VINH HẠNH CHO<br/>
-                  GIA ĐÌNH CHÚNG TÔI.
+                <div className="a6 dl" style={{marginBottom:'0.32rem'}}/>
+                <p className="a6" style={{...S.body,marginBottom:'0.28rem'}}>
+                  SỰ HIỆN DIỆN CỦA .............<br/>LÀ NIỀM VINH HẠNH CHO<br/>GIA ĐÌNH CHÚNG TÔI.
                 </p>
-
-                <p style={{
-                  fontFamily:"'Great Vibes',cursive",
-                  fontSize:"clamp(1.1rem,3vw,1.5rem)",
-                  color:"#4A7C59",
-                  animation:"itemUp 0.9s ease 0.9s both",
-                }}>Kính mời !</p>
+                <p className="a7" style={S.script}>Kính mời !</p>
               </div>
             </div>
 
-            {/* ══ TỜ PHẢI — Save the Date + Hình đôi ══ */}
-            <div className="ci-right-panel">
-              {/* Hoa góc trắng */}
-              <FlowerSVG className="flower-tl" color="rgba(255,255,255,0.7)" />
-              <FlowerSVG className="flower-tr" color="rgba(255,255,255,0.7)" />
-              <FlowerSVG className="flower-br" color="rgba(255,255,255,0.4)" />
+            {/* Gáy */}
+            <div className="ci-fold" ref={foldRef}/>
 
-              <div className="ci-right-content">
-                {/* Save the Date chữ lớn */}
-                <div style={{
-                  position:"absolute", top:"clamp(1rem,4vh,2rem)", left:0, right:0,
-                  textAlign:"left", padding:"0 clamp(1rem,3vw,2rem)",
-                  animation:"itemUp 1s ease 0.4s both",
-                }}>
-                  <p style={{
-                    fontFamily:"'Great Vibes',cursive",
-                    fontSize:"clamp(1.8rem,5vw,3rem)",
-                    color:"rgba(255,255,255,0.95)", lineHeight:1.1, margin:0,
-                    textShadow:"0 2px 12px rgba(0,0,0,0.3)",
-                  }}>Save</p>
-                  <p style={{
-                    fontFamily:"'Great Vibes',cursive",
-                    fontSize:"clamp(1.8rem,5vw,3rem)",
-                    color:"rgba(255,255,255,0.95)", lineHeight:1.1, margin:0,
-                    textShadow:"0 2px 12px rgba(0,0,0,0.3)",
-                  }}>the</p>
-                  <p style={{
-                    fontFamily:"'Great Vibes',cursive",
-                    fontSize:"clamp(1.8rem,5vw,3rem)",
-                    color:"rgba(255,255,255,0.95)", lineHeight:1.1, margin:0,
-                    textShadow:"0 2px 12px rgba(0,0,0,0.3)",
-                  }}>Date</p>
+            {/* TỜ PHẢI */}
+            <div className="ci-R" ref={rightRef}>
+              <div className="ci-tex"/><div className="ci-bord"/>
+              <FlowerW pos="tl"/><FlowerW pos="tr"/>
+              <div style={{position:'absolute',top:'clamp(0.8rem,3.5vh,1.8rem)',left:'clamp(0.8rem,3vw,1.5rem)'}}>
+                {['Save','the','Date'].map((w,i)=>(
+                  <p key={w} className={`a${i+2}`} style={S.saveDate}>{w}</p>
+                ))}
+              </div>
+              <div className="ci-rc">
+                <div className="a3" style={{flex:1,display:'flex',alignItems:'flex-end',justifyContent:'center'}}>
+                  <CoupleSVG/>
                 </div>
-
-                {/* Hình minh họa đôi uyên ương — SVG Vector */}
-                <div style={{
-                  width:"100%", flex:1,
-                  display:"flex", alignItems:"flex-end", justifyContent:"center",
-                  animation:"itemUp 1.1s ease 0.6s both",
-                  paddingBottom:"1rem",
-                }}>
-                  <CoupleSVG />
-                </div>
-
-                {/* Tên cặp đôi */}
-                <p style={{
-                  fontFamily:"'Playfair Display',serif", fontStyle:"italic",
-                  fontWeight:400, fontSize:"clamp(0.9rem,2.5vw,1.2rem)",
-                  color:"rgba(255,255,255,0.9)", margin:"0.2rem 0",
-                  textAlign:"center", letterSpacing:"0.05em",
-                  animation:"itemUp 0.9s ease 0.75s both",
-                }}>Bảo Ngân &amp; Viết Định</p>
-
-                <div className="deco-line-white" style={{ animation:"itemUp 0.8s ease 0.8s both" }}/>
-
-                <p style={{
-                  fontFamily:"'DM Sans',sans-serif", fontWeight:200,
-                  fontSize:"clamp(0.45rem,1.2vw,0.6rem)", letterSpacing:"0.35em",
-                  textTransform:"uppercase", color:"rgba(184,204,186,0.7)",
-                  animation:"itemUp 0.8s ease 0.85s both",
-                }}>26 · 04 · 2026</p>
+                <p className="a5" style={S.coupleName}>Bảo Ngân &amp; Viết Định</p>
+                <div className="a6 dlw" style={{alignSelf:'center'}}/>
+                <p className="a7" style={S.coupleDate}>26 · 04 · 2026</p>
               </div>
             </div>
-
-            {/* Bóng đổ dưới thiệp */}
-            <div style={{
-              position:"absolute", bottom:"-30px", left:"5%", right:"5%",
-              height:"30px", borderRadius:"50%",
-              background:"rgba(0,0,0,0.4)",
-              filter:"blur(15px)",
-              transform: isOpen ? "scaleX(1.15)" : "scaleX(1)",
-              transition:"transform 1.6s ease",
-            }}/>
           </div>
 
-          {/* Hint scroll */}
-          <div className="ci-hint">
-            <span style={{
-              fontFamily:"'DM Sans',sans-serif", fontWeight:200,
-              fontSize:"0.55rem", letterSpacing:"0.35em",
-              textTransform:"uppercase", color:"rgba(127,168,130,0.6)",
-            }}>Lăn chuột để mở thiệp</span>
-            <svg viewBox="0 0 20 20" width="16" fill="none">
-              <path d="M10 3 L10 17 M4 11 L10 17 L16 11"
-                stroke="rgba(127,168,130,0.55)" strokeWidth="1.2"
-                strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-
-          <button className="ci-skip" onClick={() => setState("opening")}>
-            Bỏ qua →
-          </button>
+          {/* Hint & Skip — chỉ show khi ready */}
+          {isReady && (
+            <>
+              <div className="ci-hint">
+                <span style={S.hint}>Lăn chuột để mở thiệp</span>
+                <div className="ci-arrow">
+                  <svg viewBox="0 0 18 18" width="15" fill="none">
+                    <path d="M9 2.5L9 15.5M3.5 10L9 15.5L14.5 10"
+                      stroke="rgba(127,168,130,0.5)" strokeWidth="1.2"
+                      strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+              <button className="ci-skip" onClick={() => setPhase("opening")}>
+                Bỏ qua →
+              </button>
+            </>
+          )}
         </div>
       )}
     </>
   );
 }
 
-// ── SVG Hoa trang trí ──
-function FlowerSVG({ className, color }) {
+// ── Styles ──
+const S = {
+  eyebrow:  { fontFamily:"'Jost',sans-serif", fontWeight:300, fontSize:'clamp(0.42rem,1.1vw,0.58rem)', letterSpacing:'0.42em', textTransform:'uppercase', color:'#4A7C59', marginBottom:'0.5rem' },
+  body:     { fontFamily:"'Jost',sans-serif", fontWeight:300, fontSize:'clamp(0.4rem,1vw,0.55rem)', color:'#5A7A62', lineHeight:1.85, letterSpacing:'0.05em' },
+  script:   { fontFamily:"'Great Vibes',cursive", fontSize:'clamp(1.2rem,3.5vw,1.9rem)', color:'#1A3A28', lineHeight:1.15, marginBottom:'0.25rem' },
+  tag:      { fontFamily:"'Jost',sans-serif", fontWeight:300, fontSize:'clamp(0.4rem,0.95vw,0.54rem)', color:'#5A7A62', letterSpacing:'0.22em', textTransform:'uppercase', margin:0 },
+  tagSub:   { fontFamily:"'Jost',sans-serif", fontWeight:300, fontSize:'clamp(0.36rem,0.85vw,0.48rem)', color:'#7FA882', margin:0 },
+  saveDate: { fontFamily:"'Great Vibes',cursive", fontSize:'clamp(1.5rem,4.2vw,2.6rem)', color:'rgba(255,255,255,0.95)', lineHeight:1.12, margin:0, textShadow:'0 2px 14px rgba(0,0,0,0.28)' },
+  coupleName:{ fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic', fontWeight:300, fontSize:'clamp(0.82rem,2.2vw,1.1rem)', color:'rgba(255,255,255,0.88)', margin:0, letterSpacing:'0.05em' },
+  coupleDate:{ fontFamily:"'Jost',sans-serif", fontWeight:300, fontSize:'clamp(0.4rem,1vw,0.55rem)', letterSpacing:'0.32em', textTransform:'uppercase', color:'rgba(184,204,186,0.65)', margin:0 },
+  hint:     { fontFamily:"'Jost',sans-serif", fontWeight:300, fontSize:'9px', letterSpacing:'0.32em', textTransform:'uppercase', color:'rgba(127,168,130,0.55)' },
+};
+
+// ── SVG Hoa ──
+function Flower({ pos, c }) {
+  const base = { position:'absolute', pointerEvents:'none' };
+  const P = {
+    tl:{ ...base, top:'-8px',    left:'-8px',  width:'108px', opacity:0.82 },
+    tr:{ ...base, top:'-8px',    right:'-8px', width:'108px', opacity:0.82, transform:'scaleX(-1)' },
+    bl:{ ...base, bottom:'-8px', left:'-8px',  width:'88px',  opacity:0.62, transform:'scaleY(-1)' },
+    br:{ ...base, bottom:'-8px', right:'-8px', width:'88px',  opacity:0.62, transform:'scale(-1)' },
+  };
   return (
-    <svg className={className} viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* Cành lá */}
-      <path d="M10 110 Q30 80 60 60 Q80 45 100 20" stroke={color} strokeWidth="1.5" fill="none" opacity="0.6"/>
-      <path d="M10 110 Q40 90 55 65" stroke={color} strokeWidth="1" fill="none" opacity="0.4"/>
-      {/* Lá */}
-      <ellipse cx="35" cy="88" rx="12" ry="6" fill={color} opacity="0.35" transform="rotate(-30 35 88)"/>
-      <ellipse cx="55" cy="68" rx="14" ry="6" fill={color} opacity="0.35" transform="rotate(-45 55 68)"/>
-      <ellipse cx="75" cy="45" rx="12" ry="5" fill={color} opacity="0.3" transform="rotate(-55 75 45)"/>
-      {/* Hoa */}
-      <circle cx="100" cy="20" r="8" fill={color} opacity="0.5"/>
-      <circle cx="100" cy="20" r="4" fill={color} opacity="0.7"/>
-      <circle cx="90" cy="12" r="6" fill={color} opacity="0.4"/>
-      <circle cx="108" cy="14" r="5" fill={color} opacity="0.4"/>
-      <circle cx="95" cy="28" r="5" fill={color} opacity="0.35"/>
-      {/* Hoa nhỏ */}
-      <circle cx="60" cy="60" r="5" fill={color} opacity="0.4"/>
-      <circle cx="60" cy="60" r="2.5" fill={color} opacity="0.6"/>
-      <circle cx="30" cy="90" r="4" fill={color} opacity="0.35"/>
+    <svg style={P[pos]} viewBox="0 0 120 120" fill="none">
+      <path d="M10 110 Q32 78 62 58 Q82 44 102 18" stroke={c} strokeWidth="1.3" fill="none" opacity="0.52"/>
+      <ellipse cx="36" cy="86" rx="11" ry="5" fill={c} opacity="0.28" transform="rotate(-32 36 86)"/>
+      <ellipse cx="56" cy="66" rx="12" ry="5" fill={c} opacity="0.28" transform="rotate(-46 56 66)"/>
+      <ellipse cx="76" cy="44" rx="10" ry="4" fill={c} opacity="0.24" transform="rotate(-56 76 44)"/>
+      <circle cx="102" cy="18" r="7.5" fill={c} opacity="0.42"/>
+      <circle cx="102" cy="18" r="3.8" fill={c} opacity="0.62"/>
+      <circle cx="92"  cy="10" r="5.2" fill={c} opacity="0.35"/>
+      <circle cx="110" cy="12" r="4.2" fill={c} opacity="0.32"/>
+      <circle cx="97"  cy="27" r="4.2" fill={c} opacity="0.3"/>
+      <circle cx="60"  cy="58" r="4.2" fill={c} opacity="0.35"/>
+      <circle cx="60"  cy="58" r="2"   fill={c} opacity="0.55"/>
     </svg>
   );
 }
 
-// ── SVG Đôi uyên ương vector ──
+function FlowerW({ pos }) {
+  const base = { position:'absolute', pointerEvents:'none' };
+  const P = {
+    tl:{ ...base, top:'-8px', left:'-8px',  width:'96px', opacity:0.62 },
+    tr:{ ...base, top:'-8px', right:'-8px', width:'96px', opacity:0.62, transform:'scaleX(-1)' },
+  };
+  return (
+    <svg style={P[pos]} viewBox="0 0 120 120" fill="none">
+      <path d="M10 110 Q32 78 62 58 Q82 44 102 18" stroke="rgba(255,255,255,0.6)" strokeWidth="1.1" fill="none" opacity="0.52"/>
+      <ellipse cx="36" cy="86" rx="11" ry="5" fill="rgba(255,255,255,0.32)" transform="rotate(-32 36 86)"/>
+      <ellipse cx="56" cy="66" rx="12" ry="5" fill="rgba(255,255,255,0.28)" transform="rotate(-46 56 66)"/>
+      <circle cx="102" cy="18" r="7.5" fill="rgba(255,255,255,0.46)"/>
+      <circle cx="102" cy="18" r="3.8" fill="rgba(255,255,255,0.65)"/>
+      <circle cx="92"  cy="10" r="5"   fill="rgba(255,255,255,0.35)"/>
+      <circle cx="110" cy="12" r="4"   fill="rgba(255,255,255,0.32)"/>
+      <circle cx="97"  cy="27" r="4"   fill="rgba(255,255,255,0.28)"/>
+    </svg>
+  );
+}
+
+// ── SVG Đôi uyên ương ──
 function CoupleSVG() {
   return (
-    <svg viewBox="0 0 200 280" style={{ width:"min(65%,180px)", height:"auto" }} xmlns="http://www.w3.org/2000/svg">
-      {/* === CÔ DÂU (trái) === */}
-      {/* Váy */}
-      <path d="M60 160 Q40 200 30 270 L95 270 Q90 220 85 160 Z" fill="white" opacity="0.92"/>
-      <path d="M85 160 Q90 200 95 270 L120 270 Q105 200 95 150 Z" fill="rgba(255,255,255,0.7)"/>
-      {/* Ren váy */}
-      <path d="M30 270 Q62 255 95 270" stroke="rgba(255,255,255,0.5)" strokeWidth="1" fill="none"/>
-      <path d="M35 250 Q65 238 92 250" stroke="rgba(255,255,255,0.35)" strokeWidth="0.8" fill="none"/>
-      {/* Thân áo */}
-      <path d="M65 120 Q60 140 60 160 L95 160 Q92 140 88 120 Z" fill="white" opacity="0.95"/>
-      {/* Cổ tay cô dâu */}
-      <path d="M62 130 Q52 145 48 155" stroke="white" strokeWidth="8" strokeLinecap="round" fill="none"/>
-      <path d="M86 128 Q95 140 98 148" stroke="white" strokeWidth="7" strokeLinecap="round" fill="none"/>
-      {/* Đầu cô dâu */}
-      <circle cx="76" cy="100" r="18" fill="#f5e6d8"/>
-      {/* Tóc */}
-      <path d="M58 98 Q60 80 76 78 Q92 78 94 98" fill="#3d2b1f" opacity="0.9"/>
-      <path d="M58 98 Q55 110 60 118" stroke="#3d2b1f" strokeWidth="4" fill="none" opacity="0.8"/>
-      <path d="M94 98 Q97 108 95 116" stroke="#3d2b1f" strokeWidth="3" fill="none" opacity="0.6"/>
-      {/* Mạng cô dâu */}
-      <path d="M60 88 Q76 82 92 88 L95 78 Q76 72 57 78 Z" fill="rgba(255,255,255,0.6)"/>
-      <path d="M57 78 Q76 68 95 78" stroke="rgba(255,255,255,0.8)" strokeWidth="0.8" fill="none"/>
-      {/* Mặt */}
-      <ellipse cx="70" cy="103" rx="2" ry="2.5" fill="#3d2b1f" opacity="0.7"/>
-      <ellipse cx="82" cy="103" rx="2" ry="2.5" fill="#3d2b1f" opacity="0.7"/>
-      <path d="M72 110 Q76 113 80 110" stroke="#c47a7a" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
-      {/* Bó hoa */}
-      <circle cx="50" cy="158" r="14" fill="rgba(255,255,255,0.4)"/>
-      <circle cx="46" cy="154" r="5" fill="white" opacity="0.8"/>
-      <circle cx="54" cy="153" r="5" fill="rgba(232,240,232,0.9)"/>
-      <circle cx="50" cy="162" r="5" fill="white" opacity="0.75"/>
-      <circle cx="43" cy="161" r="4" fill="rgba(200,230,200,0.8)"/>
-      <circle cx="57" cy="161" r="4" fill="white" opacity="0.7"/>
-      {/* Dải ruy băng */}
-      <path d="M48 172 Q44 182 40 192" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" fill="none"/>
-      <path d="M52 172 Q56 182 58 190" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" fill="none"/>
-
-      {/* === CHÚ RỂ (phải) === */}
-      {/* Quần */}
-      <path d="M118 170 L112 270 L130 270 L132 200 Z" fill="#2d3748" opacity="0.85"/>
-      <path d="M150 170 L156 270 L138 270 L136 200 Z" fill="#2d3748" opacity="0.85"/>
-      {/* Áo vest */}
-      <path d="M112 120 Q108 145 110 170 L158 170 Q160 145 156 120 Z" fill="#4a5568" opacity="0.9"/>
-      {/* Cổ áo trắng */}
-      <path d="M128 120 L134 138 L140 120" fill="white" opacity="0.9"/>
-      {/* Nơ đen */}
-      <path d="M130 122 L134 126 L138 122 L134 128 Z" fill="#1a202c"/>
-      {/* Tay áo */}
-      <path d="M110 122 Q100 140 98 155" stroke="#4a5568" strokeWidth="10" strokeLinecap="round" fill="none"/>
-      <path d="M158 122 Q168 140 170 155" stroke="#4a5568" strokeWidth="10" strokeLinecap="round" fill="none"/>
-      {/* Tay áo sơ mi */}
-      <path d="M98 155 Q95 162 94 168" stroke="white" strokeWidth="7" strokeLinecap="round" fill="none"/>
-      <path d="M170 155 Q173 162 174 168" stroke="white" strokeWidth="7" strokeLinecap="round" fill="none"/>
-      {/* Đầu chú rể */}
-      <circle cx="134" cy="98" r="19" fill="#f0d9c0"/>
-      {/* Tóc */}
-      <path d="M115 94 Q117 76 134 74 Q151 76 153 94" fill="#2d1f0f" opacity="0.9"/>
-      {/* Kính */}
-      <rect x="122" y="99" width="10" height="7" rx="3" stroke="#4a3728" strokeWidth="1.2" fill="rgba(200,230,255,0.2)"/>
-      <rect x="136" y="99" width="10" height="7" rx="3" stroke="#4a3728" strokeWidth="1.2" fill="rgba(200,230,255,0.2)"/>
-      <path d="M132 102 L136 102" stroke="#4a3728" strokeWidth="1" fill="none"/>
-      <path d="M120 102 L118 100" stroke="#4a3728" strokeWidth="1" fill="none"/>
-      <path d="M148 102 L150 100" stroke="#4a3728" strokeWidth="1" fill="none"/>
-      {/* Mặt */}
-      <path d="M128 109 Q134 113 140 109" stroke="#c47a7a" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
-
-      {/* === ĐƯỜNG NỐI TAY === */}
-      <path d="M96 165 Q107 170 118 168" stroke="rgba(255,255,255,0.3)" strokeWidth="3" strokeLinecap="round" fill="none"/>
+    <svg viewBox="0 0 200 272" style={{width:'min(62%,168px)',height:'auto'}}>
+      <path d="M60 156 Q40 196 30 266 L93 266 Q88 216 83 156Z" fill="rgba(255,255,255,0.9)"/>
+      <path d="M83 156 Q88 196 93 266 L116 266 Q103 196 93 146Z" fill="rgba(255,255,255,0.62)"/>
+      <path d="M63 116 Q59 136 60 156 L93 156 Q90 136 86 116Z" fill="rgba(255,255,255,0.93)"/>
+      <path d="M61 126 Q51 141 47 151" stroke="rgba(255,255,255,0.9)" strokeWidth="7" strokeLinecap="round" fill="none"/>
+      <path d="M85 124 Q94 136 96 145" stroke="rgba(255,255,255,0.76)" strokeWidth="6" strokeLinecap="round" fill="none"/>
+      <circle cx="74" cy="96" r="16.5" fill="#f5e6d8"/>
+      <path d="M57 94 Q59 76 74 74 Q89 76 91 94" fill="#3d2b1f" opacity="0.87"/>
+      <path d="M57 94 Q54 106 59 114" stroke="#3d2b1f" strokeWidth="3.2" fill="none" opacity="0.68"/>
+      <path d="M91 94 Q94 104 92 112" stroke="#3d2b1f" strokeWidth="2.4" fill="none" opacity="0.52"/>
+      <path d="M58 84 Q74 78 90 84 L93 74 Q74 68 55 74Z" fill="rgba(255,255,255,0.56)"/>
+      <ellipse cx="68" cy="99" rx="1.7" ry="2.2" fill="#3d2b1f" opacity="0.63"/>
+      <ellipse cx="80" cy="99" rx="1.7" ry="2.2" fill="#3d2b1f" opacity="0.63"/>
+      <path d="M70 106 Q74 109 78 106" stroke="#c47a7a" strokeWidth="1.15" fill="none" strokeLinecap="round"/>
+      <circle cx="48" cy="154" r="12.5" fill="rgba(255,255,255,0.36)"/>
+      <circle cx="44" cy="150" r="4.2" fill="white" opacity="0.82"/>
+      <circle cx="52" cy="149" r="4.2" fill="rgba(232,242,232,0.9)"/>
+      <circle cx="48" cy="158" r="4.2" fill="white" opacity="0.74)"/>
+      <circle cx="41" cy="157" r="3.3" fill="rgba(210,235,210,0.78)"/>
+      <circle cx="55" cy="157" r="3.3" fill="white" opacity="0.68"/>
+      <path d="M46 168 Q42 178 38 188" stroke="rgba(255,255,255,0.42)" strokeWidth="1.3" fill="none"/>
+      <path d="M50 168 Q54 178 56 186" stroke="rgba(255,255,255,0.42)" strokeWidth="1.3" fill="none"/>
+      <path d="M116 166 L110 266 L128 266 L130 196Z" fill="#2d3748" opacity="0.83"/>
+      <path d="M148 166 L154 266 L136 266 L134 196Z" fill="#2d3748" opacity="0.83"/>
+      <path d="M110 116 Q107 140 109 166 L155 166 Q157 140 154 116Z" fill="#4a5568" opacity="0.87"/>
+      <path d="M126 116 L132 134 L138 116" fill="rgba(255,255,255,0.9)"/>
+      <path d="M128 118 L132 122 L136 118 L132 125Z" fill="#1a202c"/>
+      <path d="M108 118 Q99 136 96 151" stroke="#4a5568" strokeWidth="9" strokeLinecap="round" fill="none"/>
+      <path d="M156 118 Q165 136 167 151" stroke="#4a5568" strokeWidth="9" strokeLinecap="round" fill="none"/>
+      <path d="M96 151 Q93 158 92 164" stroke="rgba(255,255,255,0.9)" strokeWidth="6" strokeLinecap="round" fill="none"/>
+      <path d="M167 151 Q170 158 171 164" stroke="rgba(255,255,255,0.9)" strokeWidth="6" strokeLinecap="round" fill="none"/>
+      <circle cx="132" cy="94" r="17.5" fill="#f0d9c0"/>
+      <path d="M114 90 Q116 72 132 70 Q148 72 150 90" fill="#2d1f0f" opacity="0.87"/>
+      <rect x="120" y="95" width="9.5" height="6.5" rx="2.8" stroke="#4a3728" strokeWidth="1" fill="rgba(200,228,255,0.18)"/>
+      <rect x="134" y="95" width="9.5" height="6.5" rx="2.8" stroke="#4a3728" strokeWidth="1" fill="rgba(200,228,255,0.18)"/>
+      <path d="M130 98 L134 98" stroke="#4a3728" strokeWidth="0.85" fill="none"/>
+      <path d="M126 105 Q132 109 138 105" stroke="#c47a7a" strokeWidth="1.15" fill="none" strokeLinecap="round"/>
+      <path d="M93 163 Q104 167 115 165" stroke="rgba(255,255,255,0.26)" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
     </svg>
   );
 }
