@@ -813,11 +813,15 @@ function RSVPForm({d}) {
 // Cuộn từng hàng lên liên tục, hiện đầy đủ nội dung
 // ═══════════════════════════════════════════════════
 function RSVPFeed() {
-  const [items, setItems] = useState([]);
+  // ── TẤT CẢ HOOKS PHẢI Ở ĐẦU — Rules of Hooks ──
+  const [items,   setItems]   = useState([]);
+  const [cmtName, setCmtName] = useState("");
+  const [cmtText, setCmtText] = useState("");
+  const [sending, setSending] = useState(false);
   const innerRef = useRef(null);
   const rafRef   = useRef(null);
   const posRef   = useRef(0);
-  const SPEED    = 0.45; // px/frame
+  const SPEED    = 0.45;
 
   const DEMOS = [
     {id:"d1",name:"Nguyễn Thị Lan",  attending:true, guests_count:2, message:"Chúc mừng hạnh phúc! Mong hai bạn luôn yêu thương nhau 🌹"},
@@ -830,65 +834,43 @@ function RSVPFeed() {
     {id:"d8",name:"Ngô Minh Tuấn",   attending:true, guests_count:1, message:"Chúc mừng! Cầu mong cuộc hôn nhân đầy niềm vui"},
   ];
 
+  // Load data + realtime
   useEffect(() => {
     if (!sb) { setItems(DEMOS); return; }
     sb.from("rsvp_responses")
-      .select("*").order("created_at",{ascending:true}).limit(50)
+      .select("*").order("created_at", {ascending:true}).limit(50)
       .then(({data}) => { setItems(data && data.length >= 3 ? data : DEMOS); });
-    const ch = sb.channel("rsvp_tk4")
-      .on("postgres_changes",{event:"INSERT",schema:"public",table:"rsvp_responses"},(p) => {
+    const ch = sb.channel("rsvp_tk5")
+      .on("postgres_changes", {event:"INSERT", schema:"public", table:"rsvp_responses"}, (p) => {
         setItems(prev => [...prev, p.new]);
       }).subscribe();
     return () => sb.removeChannel(ch);
   }, []);
 
-  // RAF cuộn — chạy sau khi items render xong
+  // RAF scroll — loop liền mạch (nhân đôi items → scroll nửa)
   useEffect(() => {
     if (!items.length) return;
     const el = innerRef.current;
     if (!el) return;
-
-    // Reset về đầu
     posRef.current = 0;
     el.style.transform = "translateY(0px)";
-
     const animate = () => {
-      const halfH = el.scrollHeight / 2; // items nhân đôi → scroll đúng 1/2
+      const halfH = el.scrollHeight / 2;
       posRef.current += SPEED;
-      if (posRef.current >= halfH) {
-        posRef.current -= halfH; // giật lùi chính xác 1 chu kỳ → liền mạch
-      }
+      if (posRef.current >= halfH) posRef.current -= halfH;
       el.style.transform = `translateY(-${posRef.current.toFixed(2)}px)`;
       rafRef.current = requestAnimationFrame(animate);
     };
-
-    const t = setTimeout(() => {
-      rafRef.current = requestAnimationFrame(animate);
-    }, 600);
-
-    return () => {
-      clearTimeout(t);
-      cancelAnimationFrame(rafRef.current);
-    };
+    const t = setTimeout(() => { rafRef.current = requestAnimationFrame(animate); }, 600);
+    return () => { clearTimeout(t); cancelAnimationFrame(rafRef.current); };
   }, [items]);
 
-  const getInit = n => n ? n.trim()[0].toUpperCase() : "?";
-
-  if (!items.length) return null;
-
-  // Nhân đôi để loop liền mạch (khi cuộn hết nửa đầu = quay lại đúng nửa sau)
-  const belt = [...items, ...items];
-
-  const [cmtName, setCmtName] = useState("");
-  const [cmtText, setCmtText] = useState("");
-  const [sending,  setSending] = useState(false);
-
+  // Send comment
   const sendComment = async () => {
     const n = cmtName.trim();
     const t = cmtText.trim();
     if (!n || !t) return;
     setSending(true);
-    // Optimistic: thêm vào items ngay
     const local = {
       id: `l${Date.now()}`, name: n,
       attending: true, guests_count: 1, message: t,
@@ -904,6 +886,9 @@ function RSVPFeed() {
     setSending(false);
   };
 
+  const getInit = n => n ? n.trim()[0].toUpperCase() : "?";
+  const belt    = [...items, ...items];
+
   return (
     <div id="live-ticker">
       {/* ── Phần cuộn chữ ── */}
@@ -911,15 +896,11 @@ function RSVPFeed() {
         <div className="tk-bg"/>
         <div className="tk-border"/>
         <div className="tk-fade"/>
-
-        {/* Header LIVE */}
         <div className="tk-header">
           <div className="tk-dot"/>
           <span className="tk-lbl">LIVE · Xác nhận tham dự</span>
           <span className="tk-count">{items.length} người</span>
         </div>
-
-        {/* Vùng cuộn chữ */}
         <div className="tk-scroll">
           <div ref={innerRef} className="tk-inner">
             {belt.map((r, i) => (
@@ -927,18 +908,16 @@ function RSVPFeed() {
                 <div className="tk-av">{getInit(r.name)}</div>
                 <span className="tk-name">{r.name}</span>
                 <span className={`tk-badge ${r.attending ? "yes" : "no"}`}>
-                  {r.attending ? `♥ ${r.guests_count || 1} người` : "✗ Vắng"}
+                  {r.attending ? `♥ ${r.guests_count||1} người` : "✗ Vắng"}
                 </span>
-                {r.message && (
-                  <span className="tk-msg">— {r.message}</span>
-                )}
+                {r.message && <span className="tk-msg">— {r.message}</span>}
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* ── Input gửi comment — pointer-events:auto ── */}
+      {/* ── Input gửi comment ── */}
       <div className="tk-input-row">
         <input
           className="tk-inp-name"
@@ -960,7 +939,6 @@ function RSVPFeed() {
           className="tk-send"
           onClick={sendComment}
           disabled={sending || !cmtName.trim() || !cmtText.trim()}
-          title="Gửi"
         >
           {sending ? "⏳" : "➤"}
         </button>
@@ -968,10 +946,6 @@ function RSVPFeed() {
     </div>
   );
 }
-// ═══════════════════════════════════════════════════
-// COMMENT BOX — Ô bình luận kiểu livestream
-// Nằm trong phần RSVP của thiệp
-// ═══════════════════════════════════════════════════
 function CommentBox() {
   const [comments, setCmts] = useState([]);
   const [name,     setName] = useState("");
