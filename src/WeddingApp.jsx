@@ -105,7 +105,7 @@ const GS = () => (
 @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Cinzel:wght@400;600&family=Dancing+Script:wght@500;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:3vh 0;font-family:'Quicksand',sans-serif;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;}
-#pw{width:451px;position:relative;background:#fff;border:1px solid #c0a0a0;box-shadow:0 0 50px rgba(80,10,10,.25);border-radius:3px;overflow:hidden;overflow-y:auto;max-height:94vh;}
+#pw{width:451px;position:relative;background:#fff;border:1px solid #c0a0a0;box-shadow:0 0 50px rgba(80,10,10,.25);border-radius:3px;overflow:hidden;overflow-y:auto;max-height:94vh;padding-bottom:38px;}
 #pw::-webkit-scrollbar{width:0;}
 #pw{-ms-overflow-style:none;scrollbar-width:none;}
 
@@ -159,73 +159,120 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 .rv-rb label{display:flex;align-items:center;gap:7px;font-size:12px;color:#444;font-family:'Quicksand',sans-serif;cursor:pointer;margin-bottom:6px;}
 .rv-rb input{accent-color:#631717;}
 
-/* ── RSVP Live Feed ── */
-.feed-wrap{
+/* ── RSVP Live Ticker — Fixed bottom bar ── */
+/* Nằm cố định cuối màn hình, chồng lên nội dung,
+   KHÔNG ảnh hưởng layout bên dưới (pointer-events:none cho wrapper) */
+#live-ticker{
+  position:fixed;
+  bottom:0; left:50%;
+  transform:translateX(-50%);
+  width:451px;
+  z-index:8888;
+  pointer-events:none; /* xuyên qua click */
+  /* hiện sau 3s */
+  animation:tickerFadeIn 1s ease .5s both;
+}
+@media(max-width:460px){#live-ticker{width:100vw;}}
+@keyframes tickerFadeIn{from{opacity:0;transform:translateX(-50%) translateY(20px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+
+.ticker-bar{
+  /* Nền glassmorphism đậm — thấy qua nhưng chữ rõ */
+  background:linear-gradient(90deg,
+    rgba(20,2,2,.88) 0%,
+    rgba(50,8,8,.92) 40%,
+    rgba(50,8,8,.92) 60%,
+    rgba(20,2,2,.88) 100%
+  );
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border-top:1px solid rgba(180,40,40,.35);
+  box-shadow:0 -4px 24px rgba(0,0,0,.45);
+  padding:0;
+  overflow:hidden;
+  height:38px;
+  display:flex;align-items:center;
+}
+
+/* Label LIVE bên trái */
+.ticker-label{
+  flex-shrink:0;
+  display:flex;align-items:center;gap:5px;
+  padding:0 10px 0 12px;
+  border-right:1px solid rgba(180,40,40,.3);
+  height:100%;
+  background:rgba(99,23,23,.5);
+}
+.ticker-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:#ff3333;
+  box-shadow:0 0 6px #ff3333;
+  animation:tdot 1.1s ease-in-out infinite;
+}
+@keyframes tdot{0%,100%{opacity:1;}50%{opacity:.3;}}
+.ticker-lbl-txt{
+  font-size:8px;font-weight:800;letter-spacing:.18em;
+  color:rgba(255,180,180,.9);font-family:'Quicksand',sans-serif;
+  text-transform:uppercase;
+}
+
+/* Track cuộn */
+.ticker-track{
+  flex:1;
+  overflow:hidden;
+  height:100%;
   position:relative;
-  height:220px;
-  overflow:hidden;
-  border-radius:10px;
 }
-.feed-bg{
-  position:absolute;inset:0;
-  background-size:cover;background-position:center;
-  filter:blur(2px) brightness(.45);
-  transform:scale(1.06);
+/* Fade hai bên */
+.ticker-track::before,.ticker-track::after{
+  content:'';position:absolute;top:0;bottom:0;width:28px;z-index:1;pointer-events:none;
 }
-.feed-overlay{
-  position:absolute;inset:0;
-  background:linear-gradient(180deg,rgba(30,0,0,.55) 0%,rgba(10,0,0,.7) 100%);
+.ticker-track::before{left:0;background:linear-gradient(90deg,rgba(30,4,4,.9),transparent);}
+.ticker-track::after{right:0;background:linear-gradient(270deg,rgba(30,4,4,.9),transparent);}
+
+/* Belt chứa tất cả items — CSS animation cuộn liên tục */
+.ticker-belt{
+  display:flex;align-items:center;
+  white-space:nowrap;
+  height:100%;
+  /* duration sẽ set bằng inline style tùy số items */
+  animation:tickerScroll linear infinite;
+  will-change:transform;
 }
-.feed-scroll{
-  position:absolute;inset:0;
-  overflow:hidden;
-  display:flex;flex-direction:column;
-  justify-content:flex-end;
-  padding:0 0 6px;
+@keyframes tickerScroll{
+  0%  { transform:translateX(0); }
+  100%{ transform:translateX(-50%); }
 }
-.feed-inner{
-  display:flex;flex-direction:column;gap:0;
-  /* CSS marquee scroll lên liên tục */
-}
-.feed-item{
-  display:flex;align-items:flex-start;gap:8px;
-  padding:7px 10px;
-  animation:feedSlideUp .6s cubic-bezier(.22,1,.36,1) forwards;
+.ticker-item{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:0 20px;
   flex-shrink:0;
 }
-@keyframes feedSlideUp{
-  from{opacity:0;transform:translateY(18px);}
-  to{opacity:1;transform:translateY(0);}
-}
-.feed-avatar{
-  width:26px;height:26px;border-radius:50%;
+.ticker-avatar{
+  width:20px;height:20px;border-radius:50%;
   background:linear-gradient(135deg,#8a2020,#631717);
-  color:#fff;display:flex;align-items:center;justify-content:center;
-  font-size:10px;font-weight:700;flex-shrink:0;font-family:'Quicksand',sans-serif;
-  border:1px solid rgba(255,180,180,.3);
-  box-shadow:0 1px 4px rgba(0,0,0,.4);
+  color:#fff;display:inline-flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:700;
+  border:1px solid rgba(255,150,150,.25);flex-shrink:0;
 }
-.feed-content{flex:1;min-width:0;}
-.feed-name{font-size:12px;font-weight:700;color:rgba(255,210,210,.95);font-family:'Quicksand',sans-serif;text-shadow:0 1px 3px rgba(0,0,0,.5);}
-.feed-msg{font-size:11px;color:rgba(255,190,190,.82);font-family:'Quicksand',sans-serif;line-height:1.4;margin-top:1px;font-style:italic;}
-.feed-badge{display:inline-block;font-size:8.5px;padding:1px 6px;border-radius:99px;margin-left:4px;font-weight:600;}
-.feed-badge.yes{background:rgba(180,30,30,.65);color:rgba(255,200,200,.95);border:1px solid rgba(255,150,150,.3);}
-.feed-badge.no{background:rgba(60,60,60,.5);color:rgba(200,200,200,.75);border:1px solid rgba(200,200,200,.2);}
-.feed-time{font-size:9px;color:rgba(255,180,180,.5);margin-top:2px;font-family:'Quicksand',sans-serif;}
-.feed-header{
-  position:absolute;top:0;left:0;right:0;z-index:5;
-  background:linear-gradient(180deg,rgba(60,5,5,.85),transparent);
-  padding:7px 10px 12px;
-  display:flex;align-items:center;gap:7px;
+.ticker-name{
+  font-size:11.5px;font-weight:700;
+  color:rgba(255,205,205,.95);
+  font-family:'Quicksand',sans-serif;
+  text-shadow:0 1px 3px rgba(0,0,0,.6);
 }
-.feed-live-dot{
-  width:6px;height:6px;background:#ff3333;border-radius:50%;
-  animation:livePulse 1.2s ease-in-out infinite;
+.ticker-badge{
+  font-size:9px;padding:1px 6px;border-radius:99px;font-weight:600;
 }
-@keyframes livePulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(.7);}}
-.feed-empty{
-  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  color:rgba(255,190,190,.45);font-size:12px;font-family:'Quicksand',sans-serif;font-style:italic;
+.ticker-badge.yes{background:rgba(160,25,25,.7);color:rgba(255,195,195,.95);border:1px solid rgba(255,130,130,.25);}
+.ticker-badge.no {background:rgba(50,50,50,.6);color:rgba(190,190,190,.75);}
+.ticker-msg{
+  font-size:10.5px;color:rgba(255,180,180,.75);
+  font-family:'Quicksand',sans-serif;font-style:italic;
+  max-width:180px;overflow:hidden;text-overflow:ellipsis;
+}
+.ticker-sep{
+  color:rgba(180,40,40,.45);font-size:14px;margin:0 4px;
+  flex-shrink:0;
 }
 
 /* ── Lightbox ── */
@@ -583,103 +630,81 @@ function RSVPForm({d}) {
 }
 
 // ══════════════════════════════════════════════
-// RSVP LIVE FEED — chữ cuộn lên, nền là ảnh mờ
+// RSVP LIVE TICKER — Fixed bar đáy màn hình
+// Chữ cuộn ngang liên tục, chồng lên nội dung,
+// Không ảnh hưởng layout, pointer-events:none
 // ══════════════════════════════════════════════
 function RSVPFeed({bgUrl=""}) {
-  const [items,setItems]=useState([]);
-  const innerRef=useRef(null);
-  const MAX=30;
-  const VISIBLE=5; // số item hiển thị cùng lúc
+  const [items, setItems] = useState([]);
+  const [dur,   setDur]   = useState(30); // giây để chạy qua 1 vòng
 
-  // Dummy data khi chưa có Supabase (để demo)
-  const DEMOS=[
-    {id:"d1",name:"Nguyễn Thị Lan",attending:true,guests_count:2,message:"Chúc mừng hạnh phúc! 🌹",created_at:new Date(Date.now()-300000).toISOString()},
-    {id:"d2",name:"Trần Văn Minh",attending:true,guests_count:3,message:"Chúc hai bạn trăm năm hạnh phúc",created_at:new Date(Date.now()-180000).toISOString()},
-    {id:"d3",name:"Lê Thị Hoa",attending:false,guests_count:0,message:"Tiếc quá không đến được!",created_at:new Date(Date.now()-90000).toISOString()},
-    {id:"d4",name:"Phạm Đức Anh",attending:true,guests_count:2,message:"",created_at:new Date(Date.now()-30000).toISOString()},
-    {id:"d5",name:"Võ Thị Mai",attending:true,guests_count:4,message:"Hạnh phúc mãi mãi nha ❤️",created_at:new Date(Date.now()-5000).toISOString()},
+  const DEMOS = [
+    {id:"d1",name:"Nguyễn Thị Lan",  attending:true, guests_count:2,message:"Chúc mừng hạnh phúc! 🌹"},
+    {id:"d2",name:"Trần Văn Minh",   attending:true, guests_count:3,message:"Chúc hai bạn trăm năm hạnh phúc"},
+    {id:"d3",name:"Lê Thị Hoa",      attending:false,guests_count:0,message:"Tiếc quá không đến được!"},
+    {id:"d4",name:"Phạm Đức Anh",    attending:true, guests_count:2,message:""},
+    {id:"d5",name:"Võ Thị Mai",      attending:true, guests_count:4,message:"Hạnh phúc mãi mãi nha ❤️"},
+    {id:"d6",name:"Đặng Quốc Hùng",  attending:true, guests_count:2,message:"Chúc mừng đám cưới"},
+    {id:"d7",name:"Phùng Thị Thanh", attending:true, guests_count:3,message:"Rất vui khi được mời ♥"},
   ];
 
   useEffect(()=>{
-    if(!sb){
-      // Không có Supabase → dùng demo data + giả lập auto-scroll
-      setItems(DEMOS);
-      return;
-    }
-    sb.from("rsvp_responses").select("*").order("created_at",{ascending:true}).limit(20)
-      .then(({data})=>{ if(data&&data.length>0)setItems(data); else setItems(DEMOS); });
-    const ch=sb.channel("rsvp_live_v2")
+    if(!sb){ setItems(DEMOS); return; }
+    sb.from("rsvp_responses").select("*").order("created_at",{ascending:true}).limit(30)
+      .then(({data})=>{ setItems(data&&data.length>=3 ? data : DEMOS); });
+    const ch = sb.channel("rsvp_ticker")
       .on("postgres_changes",{event:"INSERT",schema:"public",table:"rsvp_responses"},(p)=>{
-        setItems(prev=>[...prev,p.new].slice(-MAX));
+        setItems(prev=>[...prev,p.new].slice(-40));
       }).subscribe();
-    return()=>{sb.removeChannel(ch);};
+    return()=>sb.removeChannel(ch);
   },[]);
 
-  // Auto scroll: cuộn lên từ từ liên tục (như livestream)
+  // Tính duration: ~80px/s, mỗi item ~180px
   useEffect(()=>{
-    const el=innerRef.current;if(!el)return;
-    let raf;let pos=0;
-    const SPEED=0.4; // px/frame — rất chậm, nhẹ nhàng
-    const loop=()=>{
-      pos+=SPEED;
-      const maxScroll=el.scrollHeight-el.parentElement.clientHeight+60;
-      if(pos>=maxScroll) pos=0; // reset về đầu (loop)
-      el.style.transform=`translateY(-${pos}px)`;
-      raf=requestAnimationFrame(loop);
-    };
-    // Bắt đầu sau 1s để items render xong
-    const t=setTimeout(()=>{raf=requestAnimationFrame(loop);},1000);
-    return()=>{cancelAnimationFrame(raf);clearTimeout(t);};
+    const totalPx = items.length * 185;
+    setDur(Math.max(12, totalPx / 80));
   },[items]);
 
-  const getInitial=name=>name?name.trim()[0].toUpperCase():"?";
-  const relTime=(ts)=>{
-    const diff=Date.now()-new Date(ts).getTime();
-    if(diff<60000)return"vừa xong";
-    if(diff<3600000)return`${Math.floor(diff/60000)} phút trước`;
-    if(diff<86400000)return`${Math.floor(diff/3600000)} giờ trước`;
-    return`${Math.floor(diff/86400000)} ngày trước`;
-  };
+  const getInit = n => n ? n.trim()[0].toUpperCase() : "?";
 
-  // Double items để tạo hiệu ứng loop liền mạch
-  const displayItems=[...items,...items];
+  // Nhân đôi để tạo loop liền mạch
+  const belt = [...items, ...items];
+
+  if (!items.length) return null;
 
   return(
-    <div className="feed-wrap">
-      {/* Nền ảnh mờ */}
-      {bgUrl&&<div className="feed-bg" style={{backgroundImage:`url(${bgUrl})`}}/>}
-      {!bgUrl&&<div className="feed-bg" style={{background:"linear-gradient(145deg,#3d0e0e,#1a0505)"}}/>}
-      <div className="feed-overlay"/>
+    <div id="live-ticker">
+      <div className="ticker-bar">
+        {/* Label LIVE */}
+        <div className="ticker-label">
+          <div className="ticker-dot"/>
+          <span className="ticker-lbl-txt">LIVE</span>
+        </div>
 
-      {/* Header LIVE */}
-      <div className="feed-header">
-        <div className="feed-live-dot"/>
-        <p style={{color:"rgba(255,210,210,.9)",fontSize:"11px",fontWeight:600,fontFamily:"'Quicksand',sans-serif",letterSpacing:".08em"}}>LIVE — Xác nhận tham dự</p>
-        <span style={{marginLeft:"auto",color:"rgba(255,180,180,.5)",fontSize:"9px",fontFamily:"'Quicksand',sans-serif"}}>{items.length} người</span>
-      </div>
-
-      {/* Scroll container */}
-      <div className="feed-scroll">
-        <div ref={innerRef} className="feed-inner" style={{willChange:"transform"}}>
-          {displayItems.map((r,i)=>(
-            <div key={`${r.id||i}-${i}`} className="feed-item">
-              <div className="feed-avatar">{getInitial(r.name)}</div>
-              <div className="feed-content">
-                <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:"3px"}}>
-                  <span className="feed-name">{r.name}</span>
-                  <span className={`feed-badge ${r.attending?"yes":"no"}`}>
-                    {r.attending?`♥ ${r.guests_count||1} người`:"✗ Vắng"}
-                  </span>
-                </div>
-                {r.message&&<div className="feed-msg">"{r.message}"</div>}
-                <div className="feed-time">{relTime(r.created_at)}</div>
-              </div>
-            </div>
-          ))}
+        {/* Track cuộn */}
+        <div className="ticker-track">
+          <div className="ticker-belt" style={{animationDuration:`${dur}s`}}>
+            {belt.map((r,i)=>(
+              <span key={`${r.id||i}-${i}`} className="ticker-item">
+                {/* Avatar */}
+                <span className="ticker-avatar">{getInit(r.name)}</span>
+                {/* Tên */}
+                <span className="ticker-name">{r.name}</span>
+                {/* Badge */}
+                <span className={`ticker-badge ${r.attending?"yes":"no"}`}>
+                  {r.attending ? `♥ ${r.guests_count||1} người` : "✗ Vắng"}
+                </span>
+                {/* Lời nhắn nếu có */}
+                {r.message && (
+                  <span className="ticker-msg">— {r.message}</span>
+                )}
+                {/* Separator */}
+                <span className="ticker-sep">✦</span>
+              </span>
+            ))}
+          </div>
         </div>
       </div>
-
-      {items.length===0&&<div className="feed-empty">Hãy là người đầu tiên xác nhận! ♥</div>}
     </div>
   );
 }
@@ -1128,11 +1153,6 @@ export default function WeddingApp() {
           <span style={{display:"inline-block",borderTop:"1px solid rgba(99,23,23,.4)",paddingTop:"7px",fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:"27px",color:"#631717"}}>Xác Nhận &amp; Chúc Mừng</span>
         </Rv>
 
-        {/* Live Feed — RSVP realtime với nền ảnh */}
-        <Rv dir="u" delay={0.05} style={{marginBottom:"14px"}}>
-          <RSVPFeed bgUrl={gd(d.couple_img||d.hero_img||"")}/>
-        </Rv>
-
         {/* Form gửi */}
         <Rv dir="s" delay={0.1}>
           <div style={{maxWidth:"310px",margin:"0 auto",background:"#fff",border:"1px solid #d4b8b8",borderRadius:"10px",padding:"18px",boxShadow:"0 4px 18px rgba(99,23,23,.12)"}}>
@@ -1178,5 +1198,8 @@ export default function WeddingApp() {
 
     </div>
     {lbCur>=0&&<Lightbox imgs={lbImgs} cur={lbCur} onClose={closeLb} onNav={navLb}/>}
+
+    {/* ── Live Ticker — Fixed bottom, nằm ngoài #pw để position:fixed hoạt động ── */}
+    <RSVPFeed/>
   </>);
 }
