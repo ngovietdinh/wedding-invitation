@@ -80,6 +80,7 @@ body{background:#f5f0f0;color:#2a1010;font-family:'Quicksand',sans-serif;-webkit
 .pm-preview-label span{color:#fff;font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-family:'Quicksand',sans-serif;}
 .pm-preview-clear{position:absolute;top:4px;right:4px;background:rgba(200,30,30,.82);color:#fff;border:none;border-radius:4px;padding:2px 8px;font-size:.62rem;cursor:pointer;font-family:'Quicksand',sans-serif;font-weight:700;}
 .pm-body{padding:.8rem;}
+.pm-preview:active{cursor:grabbing!important;}
 .pm-lbl{font-size:.62rem;font-weight:700;color:#8a5050;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.35rem;display:block;}
 .pm-url{width:100%;padding:.55rem .75rem;border:1.5px solid #d4b8b8;border-radius:5px;font-size:.78rem;font-family:'Quicksand',sans-serif;outline:none;transition:border-color .22s;background:#fff;color:#2a1010;margin-bottom:.55rem;}
 .pm-url:focus{border-color:#631717;}
@@ -162,7 +163,9 @@ const SHAPES = [
 function PhotoManager({ label, urlKey, posKey, shapeKey, data, onChange }) {
   const [uploading, setUploading] = useState(false);
   const [uploadErr, setUploadErr] = useState("");
-  const fileRef = useRef(null);
+  const fileRef    = useRef(null);
+  const previewRef = useRef(null);
+  const dragRef    = useRef({dragging:false,startX:0,startY:0,startPX:0,startPY:0});
   const url     = data[urlKey]   || "";
   const pos     = data[posKey]   || "center center";
   const shape   = data[shapeKey] || "soft";
@@ -187,16 +190,65 @@ function PhotoManager({ label, urlKey, posKey, shapeKey, data, onChange }) {
     }
   };
 
+  // Drag to pan — kéo để căn chỉnh vùng hiển thị
+  const parsePct = (posStr) => {
+    const p = (posStr||"50% 50%").trim().split(/\s+/);
+    return [parseFloat(p[0])||50, parseFloat(p[1])||50];
+  };
+
+  const onMouseDown = (e) => {
+    if (!src) return;
+    e.preventDefault();
+    const [px,py] = parsePct(pos);
+    dragRef.current = {dragging:true,startX:e.clientX,startY:e.clientY,startPX:px,startPY:py};
+    const onMove = (em) => {
+      if (!dragRef.current.dragging) return;
+      const box = previewRef.current?.getBoundingClientRect();
+      if (!box) return;
+      const dx = (em.clientX - dragRef.current.startX) / box.width  * 100;
+      const dy = (em.clientY - dragRef.current.startY) / box.height * 100;
+      const nx = Math.max(0,Math.min(100, dragRef.current.startPX - dx));
+      const ny = Math.max(0,Math.min(100, dragRef.current.startPY - dy));
+      onChange(posKey, `${nx.toFixed(1)}% ${ny.toFixed(1)}%`);
+    };
+    const onUp = () => { dragRef.current.dragging=false; window.removeEventListener("mousemove",onMove); window.removeEventListener("mouseup",onUp); };
+    window.addEventListener("mousemove",onMove);
+    window.addEventListener("mouseup",onUp);
+  };
+
+  const onTouchStart = (e) => {
+    if (!src) return;
+    const touch = e.touches[0];
+    const [px,py] = parsePct(pos);
+    dragRef.current = {dragging:true,startX:touch.clientX,startY:touch.clientY,startPX:px,startPY:py};
+  };
+  const onTouchMove = (e) => {
+    if (!dragRef.current.dragging||!src) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const box = previewRef.current?.getBoundingClientRect();
+    if (!box) return;
+    const dx = (touch.clientX - dragRef.current.startX) / box.width  * 100;
+    const dy = (touch.clientY - dragRef.current.startY) / box.height * 100;
+    const nx = Math.max(0,Math.min(100, dragRef.current.startPX - dx));
+    const ny = Math.max(0,Math.min(100, dragRef.current.startPY - dy));
+    onChange(posKey, `${nx.toFixed(1)}% ${ny.toFixed(1)}%`);
+  };
+
   return (
     <div className="pm-card">
-      {/* Preview */}
-      <div className="pm-preview">
+      {/* Preview — kéo để pan */}
+      <div className="pm-preview" ref={previewRef}
+        onMouseDown={onMouseDown}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        style={{cursor:src?"grab":"default",userSelect:"none",touchAction:"none"}}>
         {src
-          ? <img src={src} alt="" style={{ objectPosition: pos }}
+          ? <img src={src} alt="" style={{ objectPosition: pos, width:"100%", height:"100%", objectFit:"cover", display:"block", pointerEvents:"none" }}
               onError={e => e.target.style.display = "none"}/>
           : <div className="pm-preview-empty"><span style={{ fontSize:"1.8rem" }}>🖼</span><span style={{ fontSize:".65rem" }}>Chưa có ảnh</span></div>
         }
-        <div className="pm-preview-label"><span>{label}</span></div>
+        <div className="pm-preview-label"><span>{label}</span>{src&&<span style={{fontSize:".58rem",opacity:.8,marginLeft:"4px"}}>✥ Kéo để căn</span>}</div>
         {src && <button className="pm-preview-clear" onClick={() => onChange(urlKey, "")}>✕</button>}
       </div>
 
@@ -220,18 +272,14 @@ function PhotoManager({ label, urlKey, posKey, shapeKey, data, onChange }) {
         {/* Căn chỉnh position — chỉ hiện khi có ảnh */}
         {src && (
           <>
-            <span className="pm-lbl" style={{ marginTop:".4rem" }}>Căn chỉnh vị trí ảnh</span>
-            <div className="pos-grid">
-              {POS_GRID.flat().map(p => (
-                <button key={p} className={`pos-btn${pos===p?" active":""}`}
-                  title={p} onClick={() => onChange(posKey, p)}>
-                  {POS_ICON[p]}
-                </button>
-              ))}
-            </div>
-            <p style={{ fontSize:".62rem",color:"#a08080",marginTop:".3rem" }}>
-              Vị trí: <strong style={{ color:"#631717" }}>{pos}</strong>
+            <p style={{ fontSize:".62rem",color:"#a08080",marginTop:".2rem",marginBottom:".5rem" }}>
+              ✥ <strong>Kéo ảnh</strong> để căn chỉnh vùng hiển thị &nbsp;|&nbsp; Vị trí: <strong style={{ color:"#631717" }}>{pos}</strong>
             </p>
+            {/* Reset về center */}
+            <button className="btn-o" onClick={() => onChange(posKey,"50% 50%")}
+              style={{ fontSize:".65rem",padding:".28rem .7rem",marginBottom:".6rem" }}>
+              ↺ Reset về giữa
+            </button>
 
             {/* Kiểu bo cong */}
             <span className="pm-lbl" style={{ marginTop:".6rem" }}>Kiểu bo cong</span>
@@ -428,9 +476,8 @@ export default function AdminPage() {
     {id:"qr",lbl:"💳 QR"},{id:"rsvp",lbl:`✉️ RSVP (${rsvps.length})`},
   ];
 
-  const F =(p)=><Field  {...p} onChange={handleChange}/>;
-  const TF=(p)=><TA    {...p} onChange={handleChange}/>;
-  const PM=(p)=><PhotoManager {...p} data={data} onChange={handleChange}/>;
+  // KHÔNG dùng shorthand inline vì tạo mới function mỗi render → mất focus
+  // Dùng trực tiếp với handleChange stable
 
   if(!auth) return(<><AdminStyle/><Login onLogin={()=>setAuth(true)}/></>);
 
@@ -479,21 +526,21 @@ export default function AdminPage() {
           {tab==="basic"&&(<>
             <div className="card">
               <div className="card-t">💍 Thông tin cặp đôi</div>
-              <div className="field-row"><F name="bride" label="Tên cô dâu" value={data.bride} placeholder="Bảo Ngân"/><F name="groom" label="Tên chú rể" value={data.groom} placeholder="Viết Định"/></div>
-              <div className="field-row"><F name="wedding_date" label="Ngày cưới" value={data.wedding_date} placeholder="26.04.2026"/><F name="wedding_day" label="Thứ" value={data.wedding_day} placeholder="Thứ Hai"/></div>
-              <div className="field-row"><F name="wedding_time" label="Giờ cưới" value={data.wedding_time} placeholder="10:00 SA"/><F name="lunar_date" label="Ngày âm lịch" value={data.lunar_date}/></div>
+              <div className="field-row"><Field name="bride" label="Tên cô dâu" value={data.bride} placeholder="Bảo Ngân" onChange={handleChange}/><Field name="groom" label="Tên chú rể" value={data.groom} placeholder="Viết Định" onChange={handleChange}/></div>
+              <div className="field-row"><Field name="wedding_date" label="Ngày cưới" value={data.wedding_date} placeholder="26.04.2026" onChange={handleChange}/><Field name="wedding_day" label="Thứ" value={data.wedding_day} placeholder="Thứ Hai" onChange={handleChange}/></div>
+              <div className="field-row"><Field name="wedding_time" label="Giờ cưới" value={data.wedding_time} placeholder="10:00 SA" onChange={handleChange}/><Field name="lunar_date" label="Ngày âm lịch" value={data.lunar_date} onChange={handleChange}/></div>
             </div>
             <div className="card">
               <div className="card-t">📍 Địa điểm</div>
-              <F name="venue_name" label="Tên địa điểm" value={data.venue_name}/>
-              <F name="venue_address" label="Địa chỉ đầy đủ" value={data.venue_address}/>
-              <F name="venue_map_url" label="Link Google Maps" value={data.venue_map_url} placeholder="https://maps.google.com/..."/>
+              <Field name="venue_name" label="Tên địa điểm" value={data.venue_name} onChange={handleChange}/>
+              <Field name="venue_address" label="Địa chỉ đầy đủ" value={data.venue_address} onChange={handleChange}/>
+              <Field name="venue_map_url" label="Link Google Maps" value={data.venue_map_url} placeholder="https://maps.google.com/..." onChange={handleChange}/>
             </div>
             <div className="card">
               <div className="card-t">👨‍👩‍👦 Phụ huynh</div>
               <div className="field-row">
-                <div><F name="parent_groom_label" label="Nhãn nhà trai" value={data.parent_groom_label}/><TF name="parent_groom_names" label="Tên ba mẹ chú rể" value={data.parent_groom_names} rows={2}/><F name="parent_groom_addr" label="Địa chỉ" value={data.parent_groom_addr}/></div>
-                <div><F name="parent_bride_label" label="Nhãn nhà gái" value={data.parent_bride_label}/><TF name="parent_bride_names" label="Tên ba mẹ cô dâu" value={data.parent_bride_names} rows={2}/><F name="parent_bride_addr" label="Địa chỉ" value={data.parent_bride_addr}/></div>
+                <div><Field name="parent_groom_label" label="Nhãn nhà trai" value={data.parent_groom_label} onChange={handleChange}/><TA name="parent_groom_names" label="Tên ba mẹ chú rể" value={data.parent_groom_names} rows={2} onChange={handleChange}/><Field name="parent_groom_addr" label="Địa chỉ" value={data.parent_groom_addr} onChange={handleChange}/></div>
+                <div><Field name="parent_bride_label" label="Nhãn nhà gái" value={data.parent_bride_label} onChange={handleChange}/><TA name="parent_bride_names" label="Tên ba mẹ cô dâu" value={data.parent_bride_names} rows={2} onChange={handleChange}/><Field name="parent_bride_addr" label="Địa chỉ" value={data.parent_bride_addr} onChange={handleChange}/></div>
               </div>
             </div>
             <button className="btn-p" onClick={save} disabled={saving} style={{ width:"100%" }}>{saving?"Đang lưu...":"💾 Lưu thông tin cơ bản"}</button>
@@ -503,17 +550,17 @@ export default function AdminPage() {
           {tab==="ceremony"&&(<>
             <div className="card">
               <div className="card-t">🕐 Lễ 1</div>
-              <F name="ceremony1_label" label="Tên lễ" value={data.ceremony1_label}/>
-              <div className="field-row"><F name="ceremony1_time" label="Thời gian" value={data.ceremony1_time} placeholder="07:30 SA"/><F name="ceremony1_date" label="Ngày" value={data.ceremony1_date} placeholder="27 . 04 . 2026"/></div>
-              <div className="field-row"><F name="ceremony1_lunar" label="Âm lịch" value={data.ceremony1_lunar}/><F name="ceremony1_place" label="Nơi tổ chức" value={data.ceremony1_place}/></div>
-              <F name="ceremony1_addr" label="Địa chỉ" value={data.ceremony1_addr}/>
+              <Field name="ceremony1_label" label="Tên lễ" value={data.ceremony1_label} onChange={handleChange}/>
+              <div className="field-row"><Field name="ceremony1_time" label="Thời gian" value={data.ceremony1_time} placeholder="07:30 SA" onChange={handleChange}/><Field name="ceremony1_date" label="Ngày" value={data.ceremony1_date} placeholder="27 . 04 . 2026" onChange={handleChange}/></div>
+              <div className="field-row"><Field name="ceremony1_lunar" label="Âm lịch" value={data.ceremony1_lunar} onChange={handleChange}/><Field name="ceremony1_place" label="Nơi tổ chức" value={data.ceremony1_place} onChange={handleChange}/></div>
+              <Field name="ceremony1_addr" label="Địa chỉ" value={data.ceremony1_addr} onChange={handleChange}/>
             </div>
             <div className="card">
               <div className="card-t">🕙 Lễ 2</div>
-              <F name="ceremony2_label" label="Tên lễ" value={data.ceremony2_label}/>
-              <div className="field-row"><F name="ceremony2_time" label="Thời gian" value={data.ceremony2_time} placeholder="10:00 SA"/><F name="ceremony2_date" label="Ngày" value={data.ceremony2_date} placeholder="26 . 04 . 2026"/></div>
-              <div className="field-row"><F name="ceremony2_lunar" label="Âm lịch" value={data.ceremony2_lunar}/><F name="ceremony2_place" label="Nơi tổ chức" value={data.ceremony2_place}/></div>
-              <F name="ceremony2_addr" label="Địa chỉ" value={data.ceremony2_addr}/>
+              <Field name="ceremony2_label" label="Tên lễ" value={data.ceremony2_label} onChange={handleChange}/>
+              <div className="field-row"><Field name="ceremony2_time" label="Thời gian" value={data.ceremony2_time} placeholder="10:00 SA" onChange={handleChange}/><Field name="ceremony2_date" label="Ngày" value={data.ceremony2_date} placeholder="26 . 04 . 2026" onChange={handleChange}/></div>
+              <div className="field-row"><Field name="ceremony2_lunar" label="Âm lịch" value={data.ceremony2_lunar} onChange={handleChange}/><Field name="ceremony2_place" label="Nơi tổ chức" value={data.ceremony2_place} onChange={handleChange}/></div>
+              <Field name="ceremony2_addr" label="Địa chỉ" value={data.ceremony2_addr} onChange={handleChange}/>
             </div>
             <button className="btn-p" onClick={save} disabled={saving} style={{ width:"100%" }}>{saving?"Đang lưu...":"💾 Lưu lịch lễ"}</button>
           </>)}
@@ -522,26 +569,26 @@ export default function AdminPage() {
           {tab==="content"&&(<>
             <div className="card">
               <div className="card-t">📄 Section Thư Mời</div>
-              <F name="sec_invite_title" label="Tiêu đề" value={data.sec_invite_title}/>
-              <F name="sec_invite_sub" label="Chú thích (IN HOA)" value={data.sec_invite_sub}/>
-              <TF name="sec_invite_body" label="Nội dung lời mời" value={data.sec_invite_body} rows={4}/>
+              <Field name="sec_invite_title" label="Tiêu đề" value={data.sec_invite_title} onChange={handleChange}/>
+              <Field name="sec_invite_sub" label="Chú thích (IN HOA)" value={data.sec_invite_sub} onChange={handleChange}/>
+              <TA name="sec_invite_body" label="Nội dung lời mời" value={data.sec_invite_body} rows={4} onChange={handleChange}/>
             </div>
             <div className="card">
               <div className="card-t">📅 Section Lịch</div>
-              <F name="sec_cal_title" label="Tiêu đề" value={data.sec_cal_title}/>
-              <F name="sec_cal_sub" label="Chú thích" value={data.sec_cal_sub}/>
+              <Field name="sec_cal_title" label="Tiêu đề" value={data.sec_cal_title} onChange={handleChange}/>
+              <Field name="sec_cal_sub" label="Chú thích" value={data.sec_cal_sub} onChange={handleChange}/>
             </div>
             <div className="card">
               <div className="card-t">💬 Lời mong (section tối)</div>
-              <TF name="mong_text" label="Nội dung (xuống dòng = Enter)" value={data.mong_text} rows={2}/>
+              <TA name="mong_text" label="Nội dung (xuống dòng = Enter)" value={data.mong_text} rows={2} onChange={handleChange}/>
             </div>
             <div className="card">
               <div className="card-t">✨ Quotes trên ảnh</div>
-              <TF name="quote1" label="Quote 1 — trên ảnh đôi lớn" value={data.quote1} rows={3}/>
-              <TF name="quote2" label="Quote 2 — bên ảnh nhỏ trái" value={data.quote2} rows={3}/>
-              <TF name="quote3" label="Quote 3 — bên ảnh nhỏ phải" value={data.quote3} rows={3}/>
-              <TF name="quote4" label="Quote 4 — trên ảnh cặp" value={data.quote4} rows={2}/>
-              <TF name="quote5" label="Quote 5 — cuối gallery" value={data.quote5} rows={1}/>
+              <TA name="quote1" label="Quote 1 — trên ảnh đôi lớn" value={data.quote1} rows={3} onChange={handleChange}/>
+              <TA name="quote2" label="Quote 2 — bên ảnh nhỏ trái" value={data.quote2} rows={3} onChange={handleChange}/>
+              <TA name="quote3" label="Quote 3 — bên ảnh nhỏ phải" value={data.quote3} rows={3} onChange={handleChange}/>
+              <TA name="quote4" label="Quote 4 — trên ảnh cặp" value={data.quote4} rows={2} onChange={handleChange}/>
+              <TA name="quote5" label="Quote 5 — cuối gallery" value={data.quote5} rows={1} onChange={handleChange}/>
             </div>
             <button className="btn-p" onClick={save} disabled={saving} style={{ width:"100%" }}>{saving?"Đang lưu...":"💾 Lưu nội dung"}</button>
           </>)}
@@ -556,16 +603,16 @@ export default function AdminPage() {
               • <strong>Bo cong</strong>: Chọn kiểu viền phù hợp cho từng ảnh
             </div>
             <div className="photos-grid">
-              <PM label="🌟 Ảnh bìa (Hero)"       urlKey="hero_img"    posKey="hero_pos"    shapeKey="hero_shape"/>
-              <PM label="👫 Ảnh đôi (Thư Mời)"    urlKey="couple_img"  posKey="couple_pos"  shapeKey="couple_shape"/>
-              <PM label="📸 Ảnh lớn (gallery)"     urlKey="photo_large" posKey="large_pos"   shapeKey="large_shape"/>
-              <PM label="📷 Ảnh nhỏ trái"          urlKey="photo_sm1"   posKey="sm1_pos"     shapeKey="sm1_shape"/>
-              <PM label="📷 Ảnh nhỏ phải"          urlKey="photo_sm2"   posKey="sm2_pos"     shapeKey="sm2_shape"/>
-              <PM label="🏞 Ảnh ngang 1"           urlKey="photo_wide1" posKey="wide1_pos"   shapeKey="wide1_shape"/>
-              <PM label="🏞 Ảnh ngang 2"           urlKey="photo_wide2" posKey="wide2_pos"   shapeKey="wide2_shape"/>
-              <PM label="🖼 Ảnh cặp trái"          urlKey="photo_pair1" posKey="pair1_pos"   shapeKey="pair1_shape"/>
-              <PM label="🖼 Ảnh cặp phải"          urlKey="photo_pair2" posKey="pair2_pos"   shapeKey="pair2_shape"/>
-              <PM label="🖼 Ảnh toàn trang"        urlKey="photo_full"  posKey="full_pos"    shapeKey="full_shape"/>
+              <PhotoManager data={data} onChange={handleChange} label="🌟 Ảnh bìa (Hero)"       urlKey="hero_img"    posKey="hero_pos"    shapeKey="hero_shape"/>
+              <PhotoManager data={data} onChange={handleChange} label="👫 Ảnh đôi (Thư Mời)"    urlKey="couple_img"  posKey="couple_pos"  shapeKey="couple_shape"/>
+              <PhotoManager data={data} onChange={handleChange} label="📸 Ảnh lớn (gallery)"     urlKey="photo_large" posKey="large_pos"   shapeKey="large_shape"/>
+              <PhotoManager data={data} onChange={handleChange} label="📷 Ảnh nhỏ trái"          urlKey="photo_sm1"   posKey="sm1_pos"     shapeKey="sm1_shape"/>
+              <PhotoManager data={data} onChange={handleChange} label="📷 Ảnh nhỏ phải"          urlKey="photo_sm2"   posKey="sm2_pos"     shapeKey="sm2_shape"/>
+              <PhotoManager data={data} onChange={handleChange} label="🏞 Ảnh ngang 1"           urlKey="photo_wide1" posKey="wide1_pos"   shapeKey="wide1_shape"/>
+              <PhotoManager data={data} onChange={handleChange} label="🏞 Ảnh ngang 2"           urlKey="photo_wide2" posKey="wide2_pos"   shapeKey="wide2_shape"/>
+              <PhotoManager data={data} onChange={handleChange} label="🖼 Ảnh cặp trái"          urlKey="photo_pair1" posKey="pair1_pos"   shapeKey="pair1_shape"/>
+              <PhotoManager data={data} onChange={handleChange} label="🖼 Ảnh cặp phải"          urlKey="photo_pair2" posKey="pair2_pos"   shapeKey="pair2_shape"/>
+              <PhotoManager data={data} onChange={handleChange} label="🖼 Ảnh toàn trang"        urlKey="photo_full"  posKey="full_pos"    shapeKey="full_shape"/>
             </div>
             <button className="btn-p" onClick={save} disabled={saving} style={{ width:"100%",marginTop:"1rem" }}>{saving?"Đang lưu...":"💾 Lưu ảnh chính"}</button>
           </>)}
@@ -610,7 +657,7 @@ export default function AdminPage() {
                 Nhạc tự động bật khi khách chạm màn hình lần đầu (kể cả mobile).<br/>
                 Khách nhấn nút <strong>♩</strong> góc trên phải để bật/tắt.
               </div>
-              <F name="music_youtube" label="Link YouTube (URL đầy đủ)" value={data.music_youtube} placeholder="https://www.youtube.com/watch?v=..."/>
+              <Field name="music_youtube" label="Link YouTube (URL đầy đủ)" value={data.music_youtube} placeholder="https://www.youtube.com/watch?v=..." onChange={handleChange}/>
               {data.music_youtube&&(()=>{
                 const m=data.music_youtube.match(/[?&]v=([^&]+)/)||data.music_youtube.match(/youtu\.be\/([^?]+)/);
                 const id=m?.[1];
@@ -632,15 +679,15 @@ export default function AdminPage() {
           {tab==="qr"&&(<>
             <div className="card">
               <div className="card-t">💳 QR Chú Rể</div>
-              <div className="field-row"><F name="qr_groom_bank" label="Ngân hàng" value={data.qr_groom_bank}/><F name="qr_groom_num" label="Số tài khoản" value={data.qr_groom_num}/></div>
-              <F name="qr_groom_name" label="Tên chủ tài khoản (IN HOA)" value={data.qr_groom_name}/>
-              <PM label="Ảnh QR Code Chú Rể" urlKey="qr_groom_img" posKey="hero_pos" shapeKey="hero_shape"/>
+              <div className="field-row"><Field name="qr_groom_bank" label="Ngân hàng" value={data.qr_groom_bank} onChange={handleChange}/><Field name="qr_groom_num" label="Số tài khoản" value={data.qr_groom_num} onChange={handleChange}/></div>
+              <Field name="qr_groom_name" label="Tên chủ tài khoản (IN HOA)" value={data.qr_groom_name} onChange={handleChange}/>
+              <PhotoManager data={data} onChange={handleChange} label="Ảnh QR Code Chú Rể" urlKey="qr_groom_img" posKey="hero_pos" shapeKey="hero_shape"/>
             </div>
             <div className="card">
               <div className="card-t">💳 QR Cô Dâu</div>
-              <div className="field-row"><F name="qr_bride_bank" label="Ngân hàng" value={data.qr_bride_bank}/><F name="qr_bride_num" label="Số tài khoản" value={data.qr_bride_num}/></div>
-              <F name="qr_bride_name" label="Tên chủ tài khoản (IN HOA)" value={data.qr_bride_name}/>
-              <PM label="Ảnh QR Code Cô Dâu" urlKey="qr_bride_img" posKey="hero_pos" shapeKey="hero_shape"/>
+              <div className="field-row"><Field name="qr_bride_bank" label="Ngân hàng" value={data.qr_bride_bank} onChange={handleChange}/><Field name="qr_bride_num" label="Số tài khoản" value={data.qr_bride_num} onChange={handleChange}/></div>
+              <Field name="qr_bride_name" label="Tên chủ tài khoản (IN HOA)" value={data.qr_bride_name} onChange={handleChange}/>
+              <PhotoManager data={data} onChange={handleChange} label="Ảnh QR Code Cô Dâu" urlKey="qr_bride_img" posKey="hero_pos" shapeKey="hero_shape"/>
             </div>
             <button className="btn-p" onClick={save} disabled={saving} style={{ width:"100%" }}>{saving?"Đang lưu...":"💾 Lưu QR"}</button>
           </>)}
