@@ -160,30 +160,73 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 .rv-rb input{accent-color:#631717;}
 
 /* ── RSVP Live Feed ── */
-#rsvp-feed{position:relative;overflow:hidden;}
+.feed-wrap{
+  position:relative;
+  height:220px;
+  overflow:hidden;
+  border-radius:10px;
+}
+.feed-bg{
+  position:absolute;inset:0;
+  background-size:cover;background-position:center;
+  filter:blur(2px) brightness(.45);
+  transform:scale(1.06);
+}
+.feed-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(30,0,0,.55) 0%,rgba(10,0,0,.7) 100%);
+}
+.feed-scroll{
+  position:absolute;inset:0;
+  overflow:hidden;
+  display:flex;flex-direction:column;
+  justify-content:flex-end;
+  padding:0 0 6px;
+}
+.feed-inner{
+  display:flex;flex-direction:column;gap:0;
+  /* CSS marquee scroll lên liên tục */
+}
 .feed-item{
   display:flex;align-items:flex-start;gap:8px;
-  padding:8px 10px;margin:0;
-  animation:feedSlideIn .5s cubic-bezier(.22,1,.36,1);
-  border-bottom:1px solid rgba(99,23,23,.08);
+  padding:7px 10px;
+  animation:feedSlideUp .6s cubic-bezier(.22,1,.36,1) forwards;
+  flex-shrink:0;
 }
-@keyframes feedSlideIn{
-  from{opacity:0;transform:translateY(20px);}
+@keyframes feedSlideUp{
+  from{opacity:0;transform:translateY(18px);}
   to{opacity:1;transform:translateY(0);}
 }
 .feed-avatar{
-  width:28px;height:28px;border-radius:50%;
-  background:linear-gradient(135deg,#631717,#9a2a2a);
+  width:26px;height:26px;border-radius:50%;
+  background:linear-gradient(135deg,#8a2020,#631717);
   color:#fff;display:flex;align-items:center;justify-content:center;
-  font-size:11px;font-weight:700;flex-shrink:0;font-family:'Quicksand',sans-serif;
+  font-size:10px;font-weight:700;flex-shrink:0;font-family:'Quicksand',sans-serif;
+  border:1px solid rgba(255,180,180,.3);
+  box-shadow:0 1px 4px rgba(0,0,0,.4);
 }
 .feed-content{flex:1;min-width:0;}
-.feed-name{font-size:12px;font-weight:700;color:#631717;font-family:'Quicksand',sans-serif;}
-.feed-msg{font-size:11px;color:#555;font-family:'Quicksand',sans-serif;line-height:1.4;margin-top:1px;}
-.feed-badge{display:inline-block;font-size:9px;padding:1px 6px;border-radius:99px;margin-left:4px;font-weight:600;}
-.feed-badge.yes{background:#fde8e8;color:#631717;}
-.feed-badge.no{background:#f0f0f0;color:#888;}
-.feed-time{font-size:9px;color:#aaa;margin-top:2px;font-family:'Quicksand',sans-serif;}
+.feed-name{font-size:12px;font-weight:700;color:rgba(255,210,210,.95);font-family:'Quicksand',sans-serif;text-shadow:0 1px 3px rgba(0,0,0,.5);}
+.feed-msg{font-size:11px;color:rgba(255,190,190,.82);font-family:'Quicksand',sans-serif;line-height:1.4;margin-top:1px;font-style:italic;}
+.feed-badge{display:inline-block;font-size:8.5px;padding:1px 6px;border-radius:99px;margin-left:4px;font-weight:600;}
+.feed-badge.yes{background:rgba(180,30,30,.65);color:rgba(255,200,200,.95);border:1px solid rgba(255,150,150,.3);}
+.feed-badge.no{background:rgba(60,60,60,.5);color:rgba(200,200,200,.75);border:1px solid rgba(200,200,200,.2);}
+.feed-time{font-size:9px;color:rgba(255,180,180,.5);margin-top:2px;font-family:'Quicksand',sans-serif;}
+.feed-header{
+  position:absolute;top:0;left:0;right:0;z-index:5;
+  background:linear-gradient(180deg,rgba(60,5,5,.85),transparent);
+  padding:7px 10px 12px;
+  display:flex;align-items:center;gap:7px;
+}
+.feed-live-dot{
+  width:6px;height:6px;background:#ff3333;border-radius:50%;
+  animation:livePulse 1.2s ease-in-out infinite;
+}
+@keyframes livePulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(.7);}}
+.feed-empty{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  color:rgba(255,190,190,.45);font-size:12px;font-family:'Quicksand',sans-serif;font-style:italic;
+}
 
 /* ── Lightbox ── */
 #lb{display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.96);align-items:center;justify-content:center;}
@@ -258,49 +301,98 @@ function Particles() {
   );
 }
 
-// ── Music player — auto-play mobile ──
+// ── Music player — auto-play mobile (dùng muted iframe + gesture unlock) ──
 function Music({url}) {
-  const [on,setOn]=useState(false);
-  const [loaded,setLoaded]=useState(false);
-  const ifrRef=useRef(null);
-  const startedRef=useRef(false);
-  const id=ytId(url);
+  const [on,setOn]       = useState(false);
+  const [ready,setReady] = useState(false);
+  const ifrRef           = useRef(null);
+  const startedRef       = useRef(false);
+  const id               = ytId(url);
 
-  const cmd=useCallback((fn)=>{
-    try{ifrRef.current?.contentWindow?.postMessage(JSON.stringify({event:"command",func:fn,args:[]}),"*");}catch{}
-  },[]);
+  // Gửi lệnh tới YouTube player qua postMessage
+  const cmd = useCallback((fn, args=[]) => {
+    try {
+      ifrRef.current?.contentWindow?.postMessage(
+        JSON.stringify({ event:"command", func:fn, args }), "*"
+      );
+    } catch {}
+  }, []);
 
-  const doPlay=useCallback(()=>{
-    cmd("unMute");cmd("playVideo");
-    try{ifrRef.current?.contentWindow?.postMessage(JSON.stringify({event:"command",func:"setVolume",args:[80]}),"*");}catch{}
+  // Hàm phát thật sự (cần gesture trên mobile)
+  const doPlay = useCallback(() => {
+    cmd("unMute");
+    cmd("playVideo");
+    cmd("setVolume", [85]);
     setOn(true);
-  },[cmd]);
+  }, [cmd]);
 
-  useEffect(()=>{
-    if(!id)return;
-    const tryPlay=()=>{
-      if(startedRef.current)return;
-      startedRef.current=true;
-      setTimeout(doPlay,800);
+  // Khi iframe load xong → đánh dấu ready
+  const onLoad = useCallback(() => {
+    setReady(true);
+    // Desktop: thử phát ngay (không cần gesture)
+    if (startedRef.current) {
+      setTimeout(doPlay, 500);
+    }
+  }, [doPlay]);
+
+  // Lắng nghe gesture đầu tiên → phát nhạc
+  useEffect(() => {
+    if (!id) return;
+
+    const unlock = () => {
+      if (startedRef.current) return;
+      startedRef.current = true;
+      if (ready) doPlay();
+      else {
+        // Chưa load xong → đợi onLoad gọi doPlay
+        // (onLoad sẽ check startedRef.current)
+      }
     };
-    window.addEventListener("touchstart",tryPlay,{once:true,passive:true});
-    window.addEventListener("click",tryPlay,{once:true});
-    const t=setTimeout(()=>{if(!startedRef.current){startedRef.current=true;doPlay();}},1500);
-    return()=>{window.removeEventListener("touchstart",tryPlay);window.removeEventListener("click",tryPlay);clearTimeout(t);};
-  },[id,doPlay]);
 
-  const toggle=useCallback((e)=>{
+    // Gesture events — mobile cần touchstart, desktop cần click
+    window.addEventListener("touchstart", unlock, { once: true, passive: true });
+    window.addEventListener("click",      unlock, { once: true });
+
+    // Desktop fallback: thử sau 1.2s (không cần gesture)
+    const t = setTimeout(() => {
+      if (!startedRef.current && ready) {
+        startedRef.current = true;
+        doPlay();
+      }
+    }, 1200);
+
+    return () => {
+      window.removeEventListener("touchstart", unlock);
+      window.removeEventListener("click",      unlock);
+      clearTimeout(t);
+    };
+  }, [id, ready, doPlay]);
+
+  const toggle = useCallback((e) => {
     e.stopPropagation();
-    if(!id)return;
-    if(!startedRef.current){startedRef.current=true;doPlay();return;}
-    if(on){cmd("mute");setOn(false);}else{cmd("unMute");cmd("playVideo");setOn(true);}
-  },[id,on,doPlay,cmd]);
+    if (!id) return;
+    if (!startedRef.current) {
+      startedRef.current = true;
+      if (ready) doPlay();
+      return;
+    }
+    if (on) { cmd("mute"); setOn(false); }
+    else    { cmd("unMute"); cmd("playVideo"); setOn(true); }
+  }, [id, on, ready, doPlay, cmd]);
 
-  const ifrSrc=id?`https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&enablejsapi=1&playsinline=1`:"";
+  // iframe: load với mute=1 để vượt autoplay policy
+  // playsinline=1 quan trọng cho iOS
+  const ifrSrc = id
+    ? `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&enablejsapi=1&playsinline=1&rel=0`
+    : "";
 
   return(<>
-    {id&&<iframe ref={ifrRef} src={ifrSrc} allow="autoplay;encrypted-media" title="music"
-      style={{position:"fixed",top:"-9999px",left:"-9999px",width:"2px",height:"2px",opacity:0,pointerEvents:"none"}}/>}
+    {id && (
+      <iframe ref={ifrRef} src={ifrSrc} onLoad={onLoad}
+        allow="autoplay; encrypted-media; picture-in-picture"
+        allowFullScreen={false} title="music"
+        style={{position:"fixed",top:"-9999px",left:"-9999px",width:"1px",height:"1px",opacity:0,pointerEvents:"none",border:"none"}}/>
+    )}
     <button id="aud" className={on?"on":""} onClick={toggle} aria-label={on?"Tắt nhạc":"Bật nhạc"}>
       {on?(
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
@@ -491,44 +583,54 @@ function RSVPForm({d}) {
 }
 
 // ══════════════════════════════════════════════
-// RSVP LIVE FEED — cuộn lên như livestream
+// RSVP LIVE FEED — chữ cuộn lên, nền là ảnh mờ
 // ══════════════════════════════════════════════
-function RSVPFeed() {
+function RSVPFeed({bgUrl=""}) {
   const [items,setItems]=useState([]);
-  const feedRef=useRef(null);
-  const MAX=20;
+  const innerRef=useRef(null);
+  const MAX=30;
+  const VISIBLE=5; // số item hiển thị cùng lúc
 
-  // Load ban đầu + subscribe realtime
+  // Dummy data khi chưa có Supabase (để demo)
+  const DEMOS=[
+    {id:"d1",name:"Nguyễn Thị Lan",attending:true,guests_count:2,message:"Chúc mừng hạnh phúc! 🌹",created_at:new Date(Date.now()-300000).toISOString()},
+    {id:"d2",name:"Trần Văn Minh",attending:true,guests_count:3,message:"Chúc hai bạn trăm năm hạnh phúc",created_at:new Date(Date.now()-180000).toISOString()},
+    {id:"d3",name:"Lê Thị Hoa",attending:false,guests_count:0,message:"Tiếc quá không đến được!",created_at:new Date(Date.now()-90000).toISOString()},
+    {id:"d4",name:"Phạm Đức Anh",attending:true,guests_count:2,message:"",created_at:new Date(Date.now()-30000).toISOString()},
+    {id:"d5",name:"Võ Thị Mai",attending:true,guests_count:4,message:"Hạnh phúc mãi mãi nha ❤️",created_at:new Date(Date.now()-5000).toISOString()},
+  ];
+
   useEffect(()=>{
-    if(!sb)return;
-    // Load 10 mới nhất
-    sb.from("rsvp_responses").select("*").order("created_at",{ascending:false}).limit(10)
-      .then(({data})=>{
-        if(data)setItems(data.reverse());
-      });
-    // Subscribe realtime
-    const channel=sb.channel("rsvp_live")
-      .on("postgres_changes",{event:"INSERT",schema:"public",table:"rsvp_responses"},(payload)=>{
-        setItems(prev=>{
-          const next=[...prev,payload.new];
-          return next.slice(-MAX); // giữ tối đa MAX items
-        });
+    if(!sb){
+      // Không có Supabase → dùng demo data + giả lập auto-scroll
+      setItems(DEMOS);
+      return;
+    }
+    sb.from("rsvp_responses").select("*").order("created_at",{ascending:true}).limit(20)
+      .then(({data})=>{ if(data&&data.length>0)setItems(data); else setItems(DEMOS); });
+    const ch=sb.channel("rsvp_live_v2")
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"rsvp_responses"},(p)=>{
+        setItems(prev=>[...prev,p.new].slice(-MAX));
       }).subscribe();
-    return()=>{sb.removeChannel(channel);};
+    return()=>{sb.removeChannel(ch);};
   },[]);
 
-  // Auto scroll xuống khi có item mới
+  // Auto scroll: cuộn lên từ từ liên tục (như livestream)
   useEffect(()=>{
-    if(feedRef.current){
-      feedRef.current.scrollTop=feedRef.current.scrollHeight;
-    }
+    const el=innerRef.current;if(!el)return;
+    let raf;let pos=0;
+    const SPEED=0.4; // px/frame — rất chậm, nhẹ nhàng
+    const loop=()=>{
+      pos+=SPEED;
+      const maxScroll=el.scrollHeight-el.parentElement.clientHeight+60;
+      if(pos>=maxScroll) pos=0; // reset về đầu (loop)
+      el.style.transform=`translateY(-${pos}px)`;
+      raf=requestAnimationFrame(loop);
+    };
+    // Bắt đầu sau 1s để items render xong
+    const t=setTimeout(()=>{raf=requestAnimationFrame(loop);},1000);
+    return()=>{cancelAnimationFrame(raf);clearTimeout(t);};
   },[items]);
-
-  if(items.length===0)return(
-    <div style={{padding:"1.5rem",textAlign:"center",color:"rgba(255,190,190,.5)",fontSize:"12px",fontFamily:"'Quicksand',sans-serif",fontStyle:"italic"}}>
-      Chưa có phản hồi... Hãy là người đầu tiên! ♥
-    </div>
-  );
 
   const getInitial=name=>name?name.trim()[0].toUpperCase():"?";
   const relTime=(ts)=>{
@@ -539,24 +641,45 @@ function RSVPFeed() {
     return`${Math.floor(diff/86400000)} ngày trước`;
   };
 
+  // Double items để tạo hiệu ứng loop liền mạch
+  const displayItems=[...items,...items];
+
   return(
-    <div ref={feedRef} id="rsvp-feed"
-      style={{maxHeight:"260px",overflowY:"auto",scrollBehavior:"smooth"}}>
-      {items.map((r,i)=>(
-        <div key={r.id||i} className="feed-item">
-          <div className="feed-avatar">{getInitial(r.name)}</div>
-          <div className="feed-content">
-            <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:"3px"}}>
-              <span className="feed-name">{r.name}</span>
-              <span className={`feed-badge ${r.attending?"yes":"no"}`}>
-                {r.attending?`✓ ${r.guests_count||1} người`:"✗ Vắng mặt"}
-              </span>
+    <div className="feed-wrap">
+      {/* Nền ảnh mờ */}
+      {bgUrl&&<div className="feed-bg" style={{backgroundImage:`url(${bgUrl})`}}/>}
+      {!bgUrl&&<div className="feed-bg" style={{background:"linear-gradient(145deg,#3d0e0e,#1a0505)"}}/>}
+      <div className="feed-overlay"/>
+
+      {/* Header LIVE */}
+      <div className="feed-header">
+        <div className="feed-live-dot"/>
+        <p style={{color:"rgba(255,210,210,.9)",fontSize:"11px",fontWeight:600,fontFamily:"'Quicksand',sans-serif",letterSpacing:".08em"}}>LIVE — Xác nhận tham dự</p>
+        <span style={{marginLeft:"auto",color:"rgba(255,180,180,.5)",fontSize:"9px",fontFamily:"'Quicksand',sans-serif"}}>{items.length} người</span>
+      </div>
+
+      {/* Scroll container */}
+      <div className="feed-scroll">
+        <div ref={innerRef} className="feed-inner" style={{willChange:"transform"}}>
+          {displayItems.map((r,i)=>(
+            <div key={`${r.id||i}-${i}`} className="feed-item">
+              <div className="feed-avatar">{getInitial(r.name)}</div>
+              <div className="feed-content">
+                <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:"3px"}}>
+                  <span className="feed-name">{r.name}</span>
+                  <span className={`feed-badge ${r.attending?"yes":"no"}`}>
+                    {r.attending?`♥ ${r.guests_count||1} người`:"✗ Vắng"}
+                  </span>
+                </div>
+                {r.message&&<div className="feed-msg">"{r.message}"</div>}
+                <div className="feed-time">{relTime(r.created_at)}</div>
+              </div>
             </div>
-            {r.message&&<div className="feed-msg">"{r.message}"</div>}
-            <div className="feed-time">{relTime(r.created_at)}</div>
-          </div>
+          ))}
         </div>
-      ))}
+      </div>
+
+      {items.length===0&&<div className="feed-empty">Hãy là người đầu tiên xác nhận! ♥</div>}
     </div>
   );
 }
@@ -607,34 +730,98 @@ export default function WeddingApp() {
     });
   },[]);
 
-  // ── Auto scroll — mobile + desktop ──
+  // ── Auto scroll — mobile (window.scrollBy) + desktop (#pw.scrollTop) ──
+  // Fix: không dùng progScroll flag (race condition) → dùng timestamp
   useEffect(()=>{
-    const pw=document.getElementById("pw");const sh=document.getElementById("sh");if(!pw)return;
-    const SPEED=0.65,RESUME=3000,DELAY=2200;
-    let raf=null,running=false,paused=false,resumeTmr=null,progScroll=false;
-    const isMobile=()=>window.innerWidth<=460;
-    const doScroll=(n)=>{if(isMobile())window.scrollBy(0,n);else pw.scrollTop+=n;};
-    const getTop=()=>isMobile()?window.scrollY:pw.scrollTop;
-    const getMax=()=>isMobile()?document.documentElement.scrollHeight-window.innerHeight:pw.scrollHeight-pw.clientHeight;
-    const loop=()=>{
-      if(!running)return;
-      if(!paused){progScroll=true;doScroll(SPEED);progScroll=false;if(getTop()>=getMax()-2){running=false;return;}}
-      raf=requestAnimationFrame(loop);
+    const pw  = document.getElementById("pw");
+    const sh  = document.getElementById("sh");
+    if (!pw) return;
+
+    const SPEED    = 0.7;   // px/frame
+    const RESUME   = 3500;  // ms resume sau khi user dừng
+    const START_MS = 2200;  // delay khởi động
+
+    let raf        = null;
+    let running    = false;
+    let paused     = false;
+    let resumeTmr  = null;
+    let lastAutoTs = 0;     // timestamp lần cuối code tự scroll
+
+    // Detect mobile: #pw overflow:visible → scroll bằng window
+    const mob = () => window.innerWidth <= 460;
+
+    const getTop = () => mob() ? window.scrollY           : pw.scrollTop;
+    const getMax = () => mob()
+      ? document.documentElement.scrollHeight - window.innerHeight
+      : pw.scrollHeight - pw.clientHeight;
+
+    const doScroll = (n) => {
+      lastAutoTs = Date.now();
+      if (mob()) window.scrollBy(0, n);
+      else pw.scrollTop += n;
     };
-    const pause=(h=false)=>{paused=true;if(h&&sh)sh.classList.add("gone");clearTimeout(resumeTmr);resumeTmr=setTimeout(()=>{paused=false;},RESUME);};
-    const onWheel=()=>pause(true);
-    const onPwScroll=()=>{if(sh&&pw.scrollTop>60)sh.classList.add("gone");if(!progScroll)pause(false);};
-    const onWinScroll=()=>{if(sh&&window.scrollY>60)sh.classList.add("gone");if(!progScroll)pause(false);};
-    let ty0=0;
-    const onTS=(e)=>{ty0=e.touches[0].clientY;};
-    const onTM=(e)=>{if(Math.abs(e.touches[0].clientY-ty0)>10)pause(true);};
-    pw.addEventListener("wheel",onWheel,{passive:true});pw.addEventListener("scroll",onPwScroll,{passive:true});
-    window.addEventListener("scroll",onWinScroll,{passive:true});
-    window.addEventListener("touchstart",onTS,{passive:true});window.addEventListener("touchmove",onTM,{passive:true});
-    const t=setTimeout(()=>{running=true;raf=requestAnimationFrame(loop);},DELAY);
-    return()=>{clearTimeout(t);clearTimeout(resumeTmr);cancelAnimationFrame(raf);running=false;
-      pw.removeEventListener("wheel",onWheel);pw.removeEventListener("scroll",onPwScroll);
-      window.removeEventListener("scroll",onWinScroll);window.removeEventListener("touchstart",onTS);window.removeEventListener("touchmove",onTM);};
+
+    const loop = () => {
+      if (!running) return;
+      if (!paused) {
+        doScroll(SPEED);
+        if (getTop() >= getMax() - 2) { running = false; return; }
+      }
+      raf = requestAnimationFrame(loop);
+    };
+
+    const pause = (hideHint = false) => {
+      // Bỏ qua nếu scroll do code gây ra (trong vòng 100ms)
+      if (Date.now() - lastAutoTs < 100) return;
+      paused = true;
+      if (hideHint && sh) sh.classList.add("gone");
+      clearTimeout(resumeTmr);
+      resumeTmr = setTimeout(() => { paused = false; }, RESUME);
+    };
+
+    // Ẩn hint khi scroll đủ xa
+    const onAnyScroll = () => {
+      if (sh && (getTop() > 80)) sh.classList.add("gone");
+    };
+
+    // Desktop: wheel
+    const onWheel = () => pause(true);
+
+    // Desktop: scroll event
+    const onPwScroll = () => { onAnyScroll(); pause(false); };
+
+    // Mobile: window scroll
+    const onWinScroll = () => { onAnyScroll(); pause(false); };
+
+    // Mobile: touch — chỉ pause khi swipe đủ mạnh (> 12px)
+    let tyStart = 0;
+    const onTS  = (e) => { tyStart = e.touches[0].clientY; };
+    const onTM  = (e) => {
+      if (Math.abs(e.touches[0].clientY - tyStart) > 12) pause(true);
+    };
+
+    pw.addEventListener("wheel",      onWheel,     { passive: true });
+    pw.addEventListener("scroll",     onPwScroll,  { passive: true });
+    window.addEventListener("scroll", onWinScroll, { passive: true });
+    window.addEventListener("touchstart", onTS,    { passive: true });
+    window.addEventListener("touchmove",  onTM,    { passive: true });
+
+    const t = setTimeout(() => {
+      running = true;
+      raf = requestAnimationFrame(loop);
+    }, START_MS);
+
+    return () => {
+      clearTimeout(t);
+      clearTimeout(resumeTmr);
+      cancelAnimationFrame(raf);
+      running = false;
+      pw.removeEventListener("wheel",      onWheel);
+      pw.removeEventListener("scroll",     onPwScroll);
+      window.removeEventListener("scroll", onWinScroll);
+      window.removeEventListener("touchstart", onTS);
+      window.removeEventListener("touchmove",  onTM);
+    };
   },[]);
 
   // Trigger reveal ban đầu
@@ -900,16 +1087,9 @@ export default function WeddingApp() {
           <span style={{display:"inline-block",borderTop:"1px solid rgba(99,23,23,.4)",paddingTop:"7px",fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:"27px",color:"#631717"}}>Xác Nhận &amp; Chúc Mừng</span>
         </Rv>
 
-        {/* Live Feed — RSVP realtime */}
+        {/* Live Feed — RSVP realtime với nền ảnh */}
         <Rv dir="u" delay={0.05} style={{marginBottom:"14px"}}>
-          <div style={{background:"#fff",border:"1px solid #e8d8d8",borderRadius:"10px",overflow:"hidden",boxShadow:"0 2px 10px rgba(99,23,23,.08)"}}>
-            <div style={{background:"linear-gradient(90deg,#631717,#9a2a2a)",padding:"8px 12px",display:"flex",alignItems:"center",gap:"7px"}}>
-              <div style={{width:"7px",height:"7px",background:"#ff4444",borderRadius:"50%",animation:"audPulse 1.5s ease-in-out infinite"}}/>
-              <p style={{color:"rgba(255,220,220,.9)",fontSize:"11px",fontWeight:600,fontFamily:"'Quicksand',sans-serif",letterSpacing:".1em"}}>LIVE — Phản hồi tham dự</p>
-              <span style={{marginLeft:"auto",color:"rgba(255,210,210,.65)",fontSize:"10px",fontFamily:"'Quicksand',sans-serif"}}>Realtime</span>
-            </div>
-            <RSVPFeed/>
-          </div>
+          <RSVPFeed bgUrl={gd(d.couple_img||d.hero_img||"")}/>
         </Rv>
 
         {/* Form gửi */}
