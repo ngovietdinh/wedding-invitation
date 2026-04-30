@@ -276,13 +276,13 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 .tk-name{
   font-size:11px;font-weight:700;flex-shrink:0;
   color:rgba(255,200,200,.95);font-family:'Quicksand',sans-serif;
-  text-shadow:0 1px 3px rgba(0,0,0,.7);
+  text-shadow:0 1px 3px rgba(80, 49, 49, 0.37);
 }
 .tk-badge{
   font-size:8px;padding:1px 5px;border-radius:99px;font-weight:600;flex-shrink:0;
 }
 .tk-badge.yes{background:rgba(140,20,20,.7);color:rgba(255,185,185,.95);}
-.tk-badge.no {background:rgba(50,50,50,.55);color:rgba(185,185,185,.75);}
+.tk-badge.no {background:rgba(104, 70, 70, 0.55);color:rgba(185,185,185,.75);}
 .tk-msg{
   font-size:10px;color:rgba(255,175,175,.78);
   font-family:'Quicksand',sans-serif;font-style:italic;
@@ -292,7 +292,7 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 /* Fade top của scroll area */
 .tk-fade{
   position:absolute;top:22px;left:0;right:0;height:30px;
-  background:linear-gradient(180deg,rgba(15,3,3,.9),transparent);
+  background:linear-gradient(180deg,rgba(49, 12, 12, 0.9),transparent);
   z-index:3;pointer-events:none;
 }
 
@@ -301,7 +301,7 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
   pointer-events:auto;   /* CHỈ phần này nhận tương tác */
   display:flex;align-items:center;gap:6px;
   padding:5px 8px 6px;
-  background:rgba(12,3,3,.96);
+  background:rgba(65, 18, 18, 0.96);
   border-top:1px solid rgba(140,30,30,.3);
   backdrop-filter:blur(10px);
   -webkit-backdrop-filter:blur(10px);
@@ -516,12 +516,28 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 .pf.round-none::after{display:none;}
 
 /* ── Misc ── */
-.on-photo{text-shadow:0 1px 4px rgba(0,0,0,.95),0 0 14px rgba(0,0,0,.8),0 2px 10px rgba(0,0,0,.9);}
+.on-photo{
+  text-shadow:
+    0 1px 3px rgba(90,21,21,.7),
+    0 0 10px rgba(90,21,21,.55),
+    0 2px 8px rgba(58,13,13,.6);
+}
 .hdiv{height:4px;background:linear-gradient(90deg,transparent,#631717,transparent);}
-.sec-dark{background:linear-gradient(145deg,#1a0808,#3d1010);}
-.sec-dark2{background:linear-gradient(145deg,#2a0808,#631717);}
-.sec-mid{background:linear-gradient(145deg,#631717,#1a0808);}
-.sec-night{background:linear-gradient(145deg,#110404,#200808);}
+.sec-dark{
+  background: linear-gradient(145deg,#3a0d0d,#6b1b1b);
+}
+
+.sec-dark2{
+  background: linear-gradient(145deg,#4a1010,#8a2424);
+}
+
+.sec-mid{
+  background: linear-gradient(145deg,#7a1f1f,#3a0d0d);
+}
+
+.sec-night{
+  background: linear-gradient(145deg,#2a0808,#4a1010);
+}
 
 @media(max-width:460px){
   body{
@@ -1628,7 +1644,7 @@ export default function WeddingApp() {
         )}
       </div>
 
-      <div style={{background:"#110404",padding:"14px",textAlign:"center"}}>
+      <div style={{background:"#3a0d0d",padding:"14px",textAlign:"center"}}>
         <p style={{color:"rgba(255,200,200,.3)",fontSize:"9.5px",fontFamily:"'Quicksand',sans-serif",letterSpacing:".22em"}}>{d.bride} &amp; {d.groom} · {fmtDate(d.wedding_date)} · Huế</p>
       </div>
 
