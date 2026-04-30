@@ -144,8 +144,20 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 @keyframes pGlow{0%,100%{box-shadow:0 0 8px rgba(120,30,30,.5);}50%{box-shadow:0 0 22px rgba(120,30,30,.88);}}
 
 /* ── Particles ── */
-.ptc{position:fixed;top:-40px;pointer-events:none;z-index:9997;animation:fall linear infinite;user-select:none;}
-@keyframes fall{0%{transform:translateY(0) rotate(0deg) scale(1);opacity:1;}80%{opacity:.8;}100%{transform:translateY(110vh) rotate(360deg) scale(.8);opacity:0;}}
+/* Hoa/tim rơi — pure CSS, không JS, không giật */
+.ptc-wrap{position:fixed;inset:0;pointer-events:none;z-index:9997;overflow:hidden;}
+.ptc{
+  position:absolute;top:-60px;
+  pointer-events:none;user-select:none;
+  animation:ptcFall linear infinite;
+  will-change:transform,opacity;
+}
+@keyframes ptcFall{
+  0%  {transform:translateY(0)     rotate(0deg)   scale(1);   opacity:0;}
+  5%  {opacity:1;}
+  90% {opacity:.85;}
+  100%{transform:translateY(105vh) rotate(400deg) scale(.75); opacity:0;}
+}
 
 /* ── Calendar ── */
 .cal-d{display:flex;align-items:center;justify-content:center;aspect-ratio:1;border-radius:50%;font-size:12px;color:#444;font-family:'Quicksand',sans-serif;font-weight:500;}
@@ -275,6 +287,90 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
   z-index:3;pointer-events:none;
 }
 
+/* ── Comment Box kiểu livestream ── */
+.cmtbox{
+  background:#fff;
+  border:1px solid #e8d0d0;
+  border-radius:12px;
+  overflow:hidden;
+  box-shadow:0 4px 20px rgba(99,23,23,.1);
+}
+.cmtbox-header{
+  background:linear-gradient(90deg,#631717,#9a2a2a);
+  padding:8px 12px;
+  display:flex;align-items:center;gap:7px;
+}
+.cmt-hdr-dot{width:5px;height:5px;border-radius:50%;background:#ff4444;box-shadow:0 0 5px #ff4444;animation:tkDot 1.1s ease-in-out infinite;}
+.cmt-hdr-txt{font-size:11px;font-weight:700;color:rgba(255,220,220,.92);font-family:'Quicksand',sans-serif;letter-spacing:.06em;}
+.cmt-hdr-cnt{margin-left:auto;font-size:9px;color:rgba(255,190,190,.6);font-family:'Quicksand',sans-serif;}
+
+/* Danh sách comment */
+.cmt-list{
+  height:180px;
+  overflow-y:auto;
+  padding:6px 0;
+  scroll-behavior:smooth;
+}
+.cmt-list::-webkit-scrollbar{width:3px;}
+.cmt-list::-webkit-scrollbar-thumb{background:rgba(180,60,60,.25);border-radius:2px;}
+.cmt-item{
+  display:flex;align-items:flex-start;gap:7px;
+  padding:5px 10px;
+  animation:cmtIn .4s cubic-bezier(.22,1,.36,1);
+}
+@keyframes cmtIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+.cmt-av{
+  width:24px;height:24px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,#7a1a1a,#631717);
+  color:#fff;display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:700;
+  border:1px solid rgba(180,60,60,.2);
+  margin-top:1px;
+}
+.cmt-body{flex:1;min-width:0;}
+.cmt-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.cmt-name{font-size:11.5px;font-weight:700;color:#631717;font-family:'Quicksand',sans-serif;}
+.cmt-badge{font-size:8px;padding:1px 5px;border-radius:99px;font-weight:600;}
+.cmt-badge.yes{background:#fde8e8;color:#7a1a1a;}
+.cmt-badge.no{background:#f0f0f0;color:#888;}
+.cmt-text{font-size:11px;color:#444;font-family:'Quicksand',sans-serif;line-height:1.45;margin-top:1px;word-break:break-word;}
+.cmt-time{font-size:8.5px;color:#bbb;font-family:'Quicksand',sans-serif;margin-top:2px;}
+
+/* Input gửi comment */
+.cmt-input-wrap{
+  border-top:1px solid #f0e0e0;
+  padding:8px 10px;
+  display:flex;gap:7px;align-items:center;
+  background:#fdf9f9;
+}
+.cmt-name-inp{
+  width:90px;flex-shrink:0;
+  padding:6px 8px;
+  border:1.5px solid #e0c8c8;border-radius:20px;
+  font-size:11px;font-family:'Quicksand',sans-serif;
+  outline:none;background:#fff;color:#2a1010;
+  transition:border-color .2s;
+}
+.cmt-name-inp:focus{border-color:#631717;}
+.cmt-text-inp{
+  flex:1;
+  padding:6px 10px;
+  border:1.5px solid #e0c8c8;border-radius:20px;
+  font-size:11px;font-family:'Quicksand',sans-serif;
+  outline:none;background:#fff;color:#2a1010;
+  transition:border-color .2s;
+}
+.cmt-text-inp:focus{border-color:#631717;}
+.cmt-send-btn{
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,#631717,#9a2a2a);
+  border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:opacity .2s;font-size:13px;
+}
+.cmt-send-btn:hover{opacity:.85;}
+.cmt-send-btn:disabled{opacity:.45;cursor:not-allowed;}
+
 /* ── Lightbox ── */
 #lb{display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.96);align-items:center;justify-content:center;}
 #lb.open{display:flex;}
@@ -331,18 +427,31 @@ function useCd(dateStr) {
 }
 
 // ── Particles ──
+// Tạo data particles 1 lần (ngoài component = không re-create)
+const PARTICLE_DATA = (() => {
+  const emojis = ["❤️","💕","💖","🌹","💗","🌸","✨","💝"];
+  const rng = (min, max) => min + Math.floor(Math.random() * (max - min));
+  return Array.from({length: 18}, (_, i) => ({
+    emoji:    emojis[i % emojis.length],
+    left:     `${4 + rng(0, 92)}%`,
+    delay:    `${rng(0, 16)}s`,
+    duration: `${9 + rng(0, 11)}s`,
+    size:     `${11 + rng(0, 13)}px`,
+  }));
+})();
+
 function Particles() {
-  const items=Array.from({length:16},(_,i)=>i);
-  const emojis=["❤️","💕","💖","🌹","💗","🌸","✨"];
-  return(
-    <div aria-hidden="true">
-      {items.map(i=>(
+  return (
+    <div className="ptc-wrap" aria-hidden="true">
+      {PARTICLE_DATA.map((p, i) => (
         <div key={i} className="ptc" style={{
-          left:`${5+Math.random()*90}%`,
-          animationDelay:`${Math.random()*14}s`,
-          animationDuration:`${9+Math.random()*10}s`,
-          fontSize:`${10+Math.random()*12}px`,
-        }}>{emojis[i%emojis.length]}</div>
+          left:              p.left,
+          animationDelay:    p.delay,
+          animationDuration: p.duration,
+          fontSize:          p.size,
+        }}>
+          {p.emoji}
+        </div>
       ))}
     </div>
   );
@@ -629,76 +738,65 @@ function RSVPForm({d}) {
   </>);
 }
 
-// ══════════════════════════════════════════════
-// RSVP LIVE FEED — Fixed bottom 20vh
-// Từng hàng cuộn từ dưới lên, loop liên tục
-// Hiện đầy đủ: tên + badge + lời chúc
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// RSVP LIVE TICKER — Fixed bottom 20vh
+// Cuộn từng hàng lên liên tục, hiện đầy đủ nội dung
+// ═══════════════════════════════════════════════════
 function RSVPFeed() {
   const [items, setItems] = useState([]);
   const innerRef = useRef(null);
-  const posRef   = useRef(0);   // vị trí translateY hiện tại (px, âm = cuộn lên)
   const rafRef   = useRef(null);
-  const ROW_H    = 28; // px mỗi hàng (padding+font)
-  const SPEED    = 0.35; // px/frame — chậm rãi, dễ đọc
+  const posRef   = useRef(0);
+  const SPEED    = 0.45; // px/frame
 
   const DEMOS = [
-    {id:"d1",name:"Nguyễn Thị Lan",  attending:true, guests_count:2,  message:"Chúc mừng hạnh phúc! Mong hai bạn luôn hạnh phúc bên nhau 🌹"},
-    {id:"d2",name:"Trần Văn Minh",   attending:true, guests_count:3,  message:"Trăm năm hạnh phúc, vạn sự như ý!"},
-    {id:"d3",name:"Lê Thị Hoa",      attending:false,guests_count:0,  message:"Rất tiếc không đến được, chúc hai bạn mãi yêu nhau"},
-    {id:"d4",name:"Phạm Đức Anh",    attending:true, guests_count:2,  message:""},
-    {id:"d5",name:"Võ Thị Mai",      attending:true, guests_count:4,  message:"Hạnh phúc mãi mãi nha, love you both ❤️"},
-    {id:"d6",name:"Đặng Quốc Hùng",  attending:true, guests_count:2,  message:"Chúc đám cưới vui vẻ và hạnh phúc"},
-    {id:"d7",name:"Phùng Thị Thanh", attending:true, guests_count:3,  message:"Rất vui khi được tham dự ngày trọng đại này"},
-    {id:"d8",name:"Ngô Minh Tuấn",   attending:true, guests_count:1,  message:"Chúc mừng! Cầu mong cuộc hôn nhân đầy yêu thương"},
+    {id:"d1",name:"Nguyễn Thị Lan",  attending:true, guests_count:2, message:"Chúc mừng hạnh phúc! Mong hai bạn luôn yêu thương nhau 🌹"},
+    {id:"d2",name:"Trần Văn Minh",   attending:true, guests_count:3, message:"Trăm năm hạnh phúc, vạn sự như ý!"},
+    {id:"d3",name:"Lê Thị Hoa",      attending:false,guests_count:0, message:"Rất tiếc không đến được, chúc hai bạn mãi hạnh phúc"},
+    {id:"d4",name:"Phạm Đức Anh",    attending:true, guests_count:2, message:"Chúc mừng đám cưới, hạnh phúc bên nhau trọn đời"},
+    {id:"d5",name:"Võ Thị Mai",      attending:true, guests_count:4, message:"Hạnh phúc mãi mãi nha, love you both ❤️"},
+    {id:"d6",name:"Đặng Quốc Hùng",  attending:true, guests_count:2, message:"Chúc đám cưới vui vẻ và tràn đầy yêu thương"},
+    {id:"d7",name:"Phùng Thị Thanh", attending:true, guests_count:3, message:"Rất vui khi được tham dự ngày trọng đại này"},
+    {id:"d8",name:"Ngô Minh Tuấn",   attending:true, guests_count:1, message:"Chúc mừng! Cầu mong cuộc hôn nhân đầy niềm vui"},
   ];
 
-  // Load data
-  useEffect(()=>{
-    if(!sb){ setItems(DEMOS); return; }
+  useEffect(() => {
+    if (!sb) { setItems(DEMOS); return; }
     sb.from("rsvp_responses")
       .select("*").order("created_at",{ascending:true}).limit(50)
-      .then(({data})=>{ setItems(data&&data.length>=3 ? data : DEMOS); });
-    const ch = sb.channel("rsvp_tk3")
-      .on("postgres_changes",{event:"INSERT",schema:"public",table:"rsvp_responses"},(p)=>{
-        setItems(prev=>[...prev, p.new]);
+      .then(({data}) => { setItems(data && data.length >= 3 ? data : DEMOS); });
+    const ch = sb.channel("rsvp_tk4")
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"rsvp_responses"},(p) => {
+        setItems(prev => [...prev, p.new]);
       }).subscribe();
-    return()=>sb.removeChannel(ch);
-  },[]);
+    return () => sb.removeChannel(ch);
+  }, []);
 
-  // RAF scroll — chạy khi items có dữ liệu
-  useEffect(()=>{
+  // RAF cuộn — chạy sau khi items render xong
+  useEffect(() => {
     if (!items.length) return;
     const el = innerRef.current;
     if (!el) return;
 
+    // Reset về đầu
     posRef.current = 0;
     el.style.transform = "translateY(0px)";
 
-    const loop = () => {
-      const totalH = el.scrollHeight; // chiều cao toàn bộ nội dung
-      const visH   = el.parentElement?.clientHeight || 160;
-
-      // Nếu nội dung không đủ dài để cuộn thì không cần scroll
-      if (totalH <= visH) {
-        rafRef.current = requestAnimationFrame(loop);
-        return;
-      }
-
+    const animate = () => {
+      const halfH = el.scrollHeight / 2; // items nhân đôi → scroll đúng 1/2
       posRef.current += SPEED;
-
-      // Khi cuộn hết toàn bộ → reset về đầu liền mạch
-      if (posRef.current >= totalH) {
-        posRef.current = 0;
+      if (posRef.current >= halfH) {
+        posRef.current -= halfH; // giật lùi chính xác 1 chu kỳ → liền mạch
       }
-
       el.style.transform = `translateY(-${posRef.current.toFixed(2)}px)`;
-      rafRef.current = requestAnimationFrame(loop);
+      rafRef.current = requestAnimationFrame(animate);
     };
 
-    // Bắt đầu sau 800ms để render xong
-    const t = setTimeout(()=>{ rafRef.current = requestAnimationFrame(loop); }, 800);
-    return ()=>{
+    const t = setTimeout(() => {
+      rafRef.current = requestAnimationFrame(animate);
+    }, 600);
+
+    return () => {
       clearTimeout(t);
       cancelAnimationFrame(rafRef.current);
     };
@@ -706,29 +804,33 @@ function RSVPFeed() {
 
   const getInit = n => n ? n.trim()[0].toUpperCase() : "?";
 
-  return(
+  if (!items.length) return null;
+
+  // Nhân đôi để loop liền mạch (khi cuộn hết nửa đầu = quay lại đúng nửa sau)
+  const belt = [...items, ...items];
+
+  return (
     <div id="live-ticker">
       <div className="tk-bg"/>
       <div className="tk-border"/>
       <div className="tk-fade"/>
 
-      {/* Header */}
+      {/* Header LIVE */}
       <div className="tk-header">
         <div className="tk-dot"/>
         <span className="tk-lbl">LIVE · Xác nhận tham dự</span>
         <span className="tk-count">{items.length} người</span>
       </div>
 
-      {/* Scroll area */}
+      {/* Vùng cuộn */}
       <div className="tk-scroll">
-        {/* Inner — double để loop liền mạch */}
         <div ref={innerRef} className="tk-inner">
-          {[...items, ...items].map((r, i) => (
+          {belt.map((r, i) => (
             <div key={`${r.id||i}-${i}`} className="tk-row">
               <div className="tk-av">{getInit(r.name)}</div>
               <span className="tk-name">{r.name}</span>
-              <span className={`tk-badge ${r.attending?"yes":"no"}`}>
-                {r.attending ? `♥ ${r.guests_count||1} người` : "✗ Vắng"}
+              <span className={`tk-badge ${r.attending ? "yes" : "no"}`}>
+                {r.attending ? `♥ ${r.guests_count || 1} người` : "✗ Vắng"}
               </span>
               {r.message && (
                 <span className="tk-msg">— {r.message}</span>
@@ -736,6 +838,136 @@ function RSVPFeed() {
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+// ═══════════════════════════════════════════════════
+// COMMENT BOX — Ô bình luận kiểu livestream
+// Nằm trong phần RSVP của thiệp
+// ═══════════════════════════════════════════════════
+function CommentBox() {
+  const [comments, setCmts] = useState([]);
+  const [name,     setName] = useState("");
+  const [text,     setText] = useState("");
+  const [sending,  setSend] = useState(false);
+  const listRef = useRef(null);
+
+  const DEMO_CMTS = [
+    {id:"c1", name:"Minh Anh",    attending:true,  message:"Chúc mừng! Rất vui được tham dự ❤️",    created_at: new Date(Date.now()-600000).toISOString()},
+    {id:"c2", name:"Quốc Bảo",   attending:true,  message:"Chúc đôi bạn trăm năm hạnh phúc!",      created_at: new Date(Date.now()-400000).toISOString()},
+    {id:"c3", name:"Thu Hằng",   attending:false, message:"Tiếc quá, mình không đến được rồi 😢",   created_at: new Date(Date.now()-200000).toISOString()},
+    {id:"c4", name:"Thanh Tùng", attending:true,  message:"Sẽ đến sớm! Hóng tiệc cưới 🎉",         created_at: new Date(Date.now()-60000).toISOString()},
+  ];
+
+  // Load + realtime
+  useEffect(() => {
+    if (!sb) { setCmts(DEMO_CMTS); return; }
+    sb.from("rsvp_responses")
+      .select("*").order("created_at", {ascending:true}).limit(30)
+      .then(({data}) => { setCmts(data && data.length ? data : DEMO_CMTS); });
+    const ch = sb.channel("cmt_box_v1")
+      .on("postgres_changes", {event:"INSERT", schema:"public", table:"rsvp_responses"}, (p) => {
+        setCmts(prev => [...prev, p.new]);
+      }).subscribe();
+    return () => sb.removeChannel(ch);
+  }, []);
+
+  // Auto scroll xuống khi có comment mới
+  useEffect(() => {
+    const el = listRef.current;
+    if (el) {
+      // Smooth scroll chỉ khi gần cuối
+      const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+      if (nearBottom) el.scrollTop = el.scrollHeight;
+    }
+  }, [comments]);
+
+  const send = async () => {
+    const n = name.trim();
+    const t = text.trim();
+    if (!n) { alert("Vui lòng nhập tên"); return; }
+    if (!t) { alert("Vui lòng nhập bình luận"); return; }
+    setSend(true);
+    // Thêm vào local ngay (optimistic)
+    const newCmt = {
+      id: `local-${Date.now()}`,
+      name: n, attending: true, guests_count: 1, message: t,
+      created_at: new Date().toISOString()
+    };
+    setCmts(prev => [...prev, newCmt]);
+    setText("");
+    // Lưu Supabase
+    if (sb) {
+      await sb.from("rsvp_responses").insert({
+        name: n, attending: true, guests_count: 1, message: t
+      }).catch(() => {});
+    }
+    setSend(false);
+  };
+
+  const relTime = ts => {
+    const d = Date.now() - new Date(ts).getTime();
+    if (d < 60000)    return "vừa xong";
+    if (d < 3600000)  return `${Math.floor(d/60000)} phút trước`;
+    if (d < 86400000) return `${Math.floor(d/3600000)} giờ trước`;
+    return `${Math.floor(d/86400000)} ngày trước`;
+  };
+
+  const getInit = n => n ? n.trim()[0].toUpperCase() : "?";
+
+  return (
+    <div className="cmtbox">
+      {/* Header */}
+      <div className="cmtbox-header">
+        <div className="cmt-hdr-dot"/>
+        <span className="cmt-hdr-txt">💬 Lời chúc &amp; Bình luận</span>
+        <span className="cmt-hdr-cnt">{comments.length}</span>
+      </div>
+
+      {/* Danh sách */}
+      <div className="cmt-list" ref={listRef}>
+        {comments.map((r, i) => (
+          <div key={r.id || i} className="cmt-item">
+            <div className="cmt-av">{getInit(r.name)}</div>
+            <div className="cmt-body">
+              <div className="cmt-meta">
+                <span className="cmt-name">{r.name}</span>
+                <span className={`cmt-badge ${r.attending ? "yes" : "no"}`}>
+                  {r.attending ? `♥ ${r.guests_count||1} người` : "✗ Vắng"}
+                </span>
+              </div>
+              {r.message && <div className="cmt-text">{r.message}</div>}
+              <div className="cmt-time">{relTime(r.created_at)}</div>
+            </div>
+          </div>
+        ))}
+        {comments.length === 0 && (
+          <div style={{padding:"2rem",textAlign:"center",color:"#ccc",fontSize:"12px",fontStyle:"italic"}}>
+            Hãy là người đầu tiên gửi lời chúc! ♥
+          </div>
+        )}
+      </div>
+
+      {/* Input */}
+      <div className="cmt-input-wrap">
+        <input
+          className="cmt-name-inp"
+          value={name} placeholder="Tên bạn..."
+          maxLength={30}
+          onChange={e => setName(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && send()}
+        />
+        <input
+          className="cmt-text-inp"
+          value={text} placeholder="Gửi lời chúc..."
+          maxLength={150}
+          onChange={e => setText(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && send()}
+        />
+        <button className="cmt-send-btn" onClick={send} disabled={sending} title="Gửi">
+          {sending ? "⏳" : "➤"}
+        </button>
       </div>
     </div>
   );
@@ -1166,6 +1398,11 @@ export default function WeddingApp() {
           <div style={{maxWidth:"310px",margin:"0 auto",background:"#fff",border:"1px solid #d4b8b8",borderRadius:"10px",padding:"18px",boxShadow:"0 4px 18px rgba(99,23,23,.12)"}}>
             <RSVPForm d={d}/>
           </div>
+        </Rv>
+
+        {/* Comment box — bên dưới form */}
+        <Rv dir="u" delay={0.15} style={{marginTop:"14px"}}>
+          <CommentBox/>
         </Rv>
       </div>
 
