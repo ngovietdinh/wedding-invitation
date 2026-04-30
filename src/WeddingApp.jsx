@@ -730,97 +730,138 @@ export default function WeddingApp() {
     });
   },[]);
 
-  // ── Auto scroll — mobile (window.scrollBy) + desktop (#pw.scrollTop) ──
-  // Fix: không dùng progScroll flag (race condition) → dùng timestamp
+  // ── AUTO SCROLL — mobile + desktop ──
+  // Nguyên tắc: code scroll xong mới cho phép scroll event → không bị nhầm
   useEffect(()=>{
-    const pw  = document.getElementById("pw");
-    const sh  = document.getElementById("sh");
+    const pw = document.getElementById("pw");
+    const sh = document.getElementById("sh");
     if (!pw) return;
 
-    const SPEED    = 0.7;   // px/frame
-    const RESUME   = 3500;  // ms resume sau khi user dừng
-    const START_MS = 2200;  // delay khởi động
+    const SPEED    = 0.65;  // px/frame — đủ chậm để nhìn thấy
+    const RESUME   = 3000;  // ms: sau khi user dừng thì resume
+    const START_MS = 2000;  // ms: delay trước khi bắt đầu
 
-    let raf        = null;
-    let running    = false;
-    let paused     = false;
-    let resumeTmr  = null;
-    let lastAutoTs = 0;     // timestamp lần cuối code tự scroll
+    let raf       = null;
+    let running   = false;
+    let paused    = false;
+    let resumeTmr = null;
 
-    // Detect mobile: #pw overflow:visible → scroll bằng window
-    const mob = () => window.innerWidth <= 460;
+    // ── Phân biệt mobile / desktop ──
+    // Mobile: #pw là overflow:visible, scroll bằng window
+    // Desktop: #pw là scroll container
+    const isMob = () => window.innerWidth <= 460;
 
-    const getTop = () => mob() ? window.scrollY           : pw.scrollTop;
-    const getMax = () => mob()
+    const getTop = () => isMob() ? window.scrollY : pw.scrollTop;
+    const getMax = () => isMob()
       ? document.documentElement.scrollHeight - window.innerHeight
       : pw.scrollHeight - pw.clientHeight;
 
+    // Cờ "đang tự scroll" — set trước, clear sau khi scroll xong
+    let selfScrolling = false;
+
     const doScroll = (n) => {
-      lastAutoTs = Date.now();
-      if (mob()) window.scrollBy(0, n);
+      selfScrolling = true;
+      if (isMob()) window.scrollBy(0, n);
       else pw.scrollTop += n;
+      // Clear sau 16ms (1 frame) — đủ để scroll event xử lý xong
+      setTimeout(() => { selfScrolling = false; }, 16);
     };
 
+    // ── Loop ──
     const loop = () => {
       if (!running) return;
       if (!paused) {
         doScroll(SPEED);
-        if (getTop() >= getMax() - 2) { running = false; return; }
+        if (getTop() >= getMax() - 1) {
+          // Đến cuối → dừng hẳn
+          running = false;
+          return;
+        }
       }
       raf = requestAnimationFrame(loop);
     };
 
-    const pause = (hideHint = false) => {
-      // Bỏ qua nếu scroll do code gây ra (trong vòng 100ms)
-      if (Date.now() - lastAutoTs < 100) return;
+    // ── Pause khi user tương tác ──
+    const doPause = (hideHint = false) => {
+      if (selfScrolling) return; // bỏ qua — code đang tự scroll
       paused = true;
       if (hideHint && sh) sh.classList.add("gone");
       clearTimeout(resumeTmr);
       resumeTmr = setTimeout(() => { paused = false; }, RESUME);
     };
 
-    // Ẩn hint khi scroll đủ xa
-    const onAnyScroll = () => {
-      if (sh && (getTop() > 80)) sh.classList.add("gone");
+    // ── Ẩn scroll hint khi đã cuộn xa ──
+    const hideHint = () => {
+      if (sh && getTop() > 80) sh.classList.add("gone");
     };
 
-    // Desktop: wheel
-    const onWheel = () => pause(true);
-
-    // Desktop: scroll event
-    const onPwScroll = () => { onAnyScroll(); pause(false); };
-
-    // Mobile: window scroll
-    const onWinScroll = () => { onAnyScroll(); pause(false); };
-
-    // Mobile: touch — chỉ pause khi swipe đủ mạnh (> 12px)
-    let tyStart = 0;
-    const onTS  = (e) => { tyStart = e.touches[0].clientY; };
-    const onTM  = (e) => {
-      if (Math.abs(e.touches[0].clientY - tyStart) > 12) pause(true);
+    // DESKTOP: wheel → pause ngay lập tức, dứt khoát
+    const onWheel = () => {
+      paused = true;
+      if (sh) sh.classList.add("gone");
+      clearTimeout(resumeTmr);
+      resumeTmr = setTimeout(() => { paused = false; }, RESUME);
     };
 
-    pw.addEventListener("wheel",      onWheel,     { passive: true });
-    pw.addEventListener("scroll",     onPwScroll,  { passive: true });
-    window.addEventListener("scroll", onWinScroll, { passive: true });
-    window.addEventListener("touchstart", onTS,    { passive: true });
-    window.addEventListener("touchmove",  onTM,    { passive: true });
+    // DESKTOP: scroll event (do user kéo thanh scroll hoặc keyboard)
+    const onPwScroll = () => {
+      hideHint();
+      doPause(false);
+    };
 
-    const t = setTimeout(() => {
+    // MOBILE: window scroll
+    const onWinScroll = () => {
+      hideHint();
+      doPause(false);
+    };
+
+    // MOBILE: touch
+    // - touchstart: ghi nhớ vị trí ban đầu
+    // - touchmove: nếu kéo > 8px thì pause
+    let touchY0 = 0;
+    let touchPaused = false;
+
+    const onTouchStart = (e) => {
+      touchY0 = e.touches[0].clientY;
+      touchPaused = false;
+    };
+
+    const onTouchMove = (e) => {
+      if (touchPaused) return;
+      const dy = Math.abs(e.touches[0].clientY - touchY0);
+      if (dy > 8) {
+        touchPaused = true;
+        paused = true;
+        if (sh) sh.classList.add("gone");
+        clearTimeout(resumeTmr);
+        resumeTmr = setTimeout(() => { paused = false; touchPaused = false; }, RESUME);
+      }
+    };
+
+    // Thêm listeners
+    pw.addEventListener("wheel",          onWheel,      { passive: true });
+    pw.addEventListener("scroll",         onPwScroll,   { passive: true });
+    window.addEventListener("scroll",     onWinScroll,  { passive: true });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove",  onTouchMove,  { passive: true });
+
+    // Bắt đầu sau delay
+    const startTmr = setTimeout(() => {
       running = true;
       raf = requestAnimationFrame(loop);
     }, START_MS);
 
+    // Cleanup
     return () => {
-      clearTimeout(t);
+      clearTimeout(startTmr);
       clearTimeout(resumeTmr);
       cancelAnimationFrame(raf);
       running = false;
-      pw.removeEventListener("wheel",      onWheel);
-      pw.removeEventListener("scroll",     onPwScroll);
-      window.removeEventListener("scroll", onWinScroll);
-      window.removeEventListener("touchstart", onTS);
-      window.removeEventListener("touchmove",  onTM);
+      pw.removeEventListener("wheel",          onWheel);
+      pw.removeEventListener("scroll",         onPwScroll);
+      window.removeEventListener("scroll",     onWinScroll);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove",  onTouchMove);
     };
   },[]);
 
