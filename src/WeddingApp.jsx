@@ -443,6 +443,50 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 #lb-pv{left:.8rem;}#lb-nx{right:.8rem;}
 #lb-cap{position:absolute;bottom:1rem;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.55);font-size:.8rem;font-family:'Cormorant Garamond',serif;font-style:italic;}
 
+/* ── Gallery mosaic layout ── */
+.gal-mosaic-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  grid-auto-rows:140px;
+  gap:6px;
+  padding:0 14px 14px;
+}
+.gal-cell{
+  position:relative;overflow:hidden;
+  cursor:pointer;
+  transition:transform .3s ease, box-shadow .3s ease;
+}
+.gal-cell:hover{transform:scale(1.02);box-shadow:0 8px 24px rgba(0,0,0,.5);}
+.gal-cell.wide{grid-column:span 2;}
+.gal-cell.tall{grid-row:span 2;}
+.gal-cell img{
+  width:100%;height:100%;object-fit:cover;display:block;
+  transition:transform .5s ease;
+}
+.gal-cell:hover img{transform:scale(1.06);}
+.gal-cell-cap{
+  position:absolute;bottom:0;left:0;right:0;
+  background:linear-gradient(transparent,rgba(0,0,0,.6));
+  padding:16px 8px 6px;
+  font-size:10px;color:rgba(255,255,255,.85);
+  font-family:'Quicksand',sans-serif;font-style:italic;
+  opacity:0;transition:opacity .25s;
+}
+.gal-cell:hover .gal-cell-cap{opacity:1;}
+
+/* ── Copy toast ── */
+.copy-toast{
+  position:fixed;bottom:calc(20vh + 55px);left:50%;
+  transform:translateX(-50%);
+  background:rgba(20,5,5,.9);
+  color:rgba(255,200,200,.95);
+  font-family:'Quicksand',sans-serif;font-size:12px;font-weight:600;
+  padding:7px 18px;border-radius:99px;
+  z-index:9990;pointer-events:none;
+  animation:copyToastAnim .25s ease;
+}
+@keyframes copyToastAnim{from{opacity:0;transform:translateX(-50%) translateY(8px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+
 /* ── Photo frames ── */
 .pf{position:relative;overflow:hidden;}
 .pf img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}
@@ -1096,6 +1140,15 @@ export default function WeddingApp() {
   const [d,setD]=useState(DEF);
   const [lbCur,setLbCur]=useState(-1);
   const [lbImgs,setLbImgs]=useState([]);
+  const [copyMsg,setCopyMsg]=useState("");
+
+  const copyText=useCallback((text,label="✓ Đã copy!")=>{
+    navigator.clipboard.writeText(text).catch(()=>{
+      const el=document.createElement("textarea");
+      el.value=text;document.body.appendChild(el);el.select();document.execCommand("copy");document.body.removeChild(el);
+    });
+    setCopyMsg(label);setTimeout(()=>setCopyMsg(""),2000);
+  },[]);
 
   // Tự động tính thứ từ ngày
   const weddingDay=getWeekday(d.wedding_date)||d.wedding_day;
@@ -1447,22 +1500,28 @@ export default function WeddingApp() {
         <Rv dir="u" delay={0.12}><QB text={d.quote5} fontSize={20}/></Rv>
       </div>
 
-      {/* Gallery */}
+      {/* Gallery — Mosaic Layout tự động theo size */}
       {galArr.length>0&&(<>
         <div className="hdiv"/>
-        <div style={{padding:"14px 14px 16px"}} className="sec-night">
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
-            {galArr.map((img,i)=>(
-              <Rv key={i} dir="s" delay={i*.06}
-                style={{overflow:"hidden",cursor:"pointer",borderRadius:"12px",boxShadow:"0 4px 16px rgba(0,0,0,.45)"}}
-                onClick={()=>openLb(galArr,i)}>
-                <img src={gd(img.url)} alt={img.caption||""} loading="lazy"
-                  style={{width:"100%",height:"165px",objectFit:"cover",display:"block",objectPosition:img.pos||"50% 50%",borderRadius:"12px",transition:"transform .6s ease"}}
-                  onMouseEnter={e=>e.target.style.transform="scale(1.05)"}
-                  onMouseLeave={e=>e.target.style.transform="scale(1)"}
-                  onError={e=>{e.target.style.display="none";e.target.parentElement.style.background="#2a0808";}}/>
-              </Rv>
-            ))}
+        <div className="sec-night" style={{paddingTop:"14px",paddingBottom:"6px"}}>
+          <Rv dir="u" delay={0} style={{paddingLeft:"14px",paddingRight:"14px",marginBottom:"10px"}}>
+            <p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:"18px",color:"rgba(255,200,200,.7)",textAlign:"center"}}>✦ Bộ sưu tập hình ảnh ✦</p>
+          </Rv>
+          <div className="gal-mosaic-grid">
+            {galArr.map((img,i)=>{
+              const src=gd(img.url);
+              const size=img.size||"1x1";
+              return src?(
+                <Rv key={i} dir="s" delay={i*.05}
+                  className={`gal-cell${size==="2x1"?" wide":""}${size==="1x2"?" tall":""}`}
+                  onClick={()=>openLb(galArr,i)}>
+                  <img src={src} alt={img.caption||""} loading="lazy"
+                    style={{objectPosition:img.pos||"50% 50%"}}
+                    onError={e=>{e.target.style.display="none";e.target.parentElement.style.background="#2a0808";}}/>
+                  {img.caption&&<div className="gal-cell-cap">{img.caption}</div>}
+                </Rv>
+              ):null;
+            })}
           </div>
         </div>
       </>)}
@@ -1527,6 +1586,13 @@ export default function WeddingApp() {
                 <div style={{width:"105px",height:"105px",margin:"0 auto",background:"#fff",borderRadius:"6px",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
                   {gd(qr.img)?<img src={gd(qr.img)} alt="QR" style={{width:"100%",height:"100%",objectFit:"contain"}}/>:<span style={{fontSize:"8.5px",color:"#999"}}>QR Code</span>}
                 </div>
+                {/* Nút copy số TK */}
+                <button onClick={()=>copyText(qr.num, `✓ Đã copy ${qr.num}`)}
+                  style={{marginTop:"8px",width:"100%",padding:"5px 0",background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,180,180,.25)",borderRadius:"5px",color:"rgba(255,195,195,.85)",fontSize:"9.5px",fontWeight:600,cursor:"pointer",fontFamily:"'Quicksand',sans-serif",letterSpacing:".08em",transition:"all .2s"}}
+                  onMouseEnter={e=>{e.target.style.background="rgba(255,255,255,.18)";e.target.style.borderColor="rgba(255,180,180,.5)";}}
+                  onMouseLeave={e=>{e.target.style.background="rgba(255,255,255,.1)";e.target.style.borderColor="rgba(255,180,180,.25)";}}>
+                  📋 Copy số TK
+                </button>
               </div>
             ))}
           </div>
@@ -1539,6 +1605,7 @@ export default function WeddingApp() {
 
     </div>
     {lbCur>=0&&<Lightbox imgs={lbImgs} cur={lbCur} onClose={closeLb} onNav={navLb}/>}
+    {copyMsg&&<div className="copy-toast">{copyMsg}</div>}
 
     {/* ── Live Ticker — Fixed bottom, nằm ngoài #pw để position:fixed hoạt động ── */}
     <RSVPFeed/>

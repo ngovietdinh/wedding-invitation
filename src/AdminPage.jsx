@@ -100,6 +100,85 @@ body{background:#f5f0f0;color:#2a1010;font-family:'Quicksand',sans-serif;-webkit
 .gal-inputs{display:flex;flex-direction:column;gap:.4rem;}
 .gal-acts{display:flex;flex-direction:column;gap:.28rem;}
 
+/* Gallery card mới — dạng ảnh lớn với drag-to-pan */
+.gal-card{
+  border:1px solid #e8d8d8;border-radius:10px;
+  overflow:hidden;background:#fdf5f5;
+  position:relative;
+}
+.gal-card-preview{
+  width:100%;aspect-ratio:4/3;
+  background:#f0d0d0;
+  position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  cursor:grab;user-select:none;touch-action:none;
+}
+.gal-card-preview:active{cursor:grabbing;}
+.gal-card-preview img{
+  width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;
+}
+.gal-card-preview-empty{
+  display:flex;flex-direction:column;align-items:center;gap:.4rem;color:#c4a0a0;
+}
+.gal-card-order{
+  position:absolute;top:5px;left:5px;
+  background:rgba(99,23,23,.75);color:#fff;
+  font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;
+  font-family:'Quicksand',sans-serif;
+}
+.gal-card-size{
+  position:absolute;top:5px;right:5px;
+  background:rgba(0,0,0,.5);color:rgba(255,255,255,.85);
+  font-size:8px;padding:2px 6px;border-radius:4px;
+  font-family:'Quicksand',sans-serif;
+}
+.gal-card-actions{
+  position:absolute;bottom:0;left:0;right:0;
+  background:linear-gradient(transparent,rgba(0,0,0,.6));
+  padding:20px 6px 6px;
+  display:flex;gap:4px;
+  opacity:0;transition:opacity .2s;
+}
+.gal-card:hover .gal-card-actions{opacity:1;}
+.gal-card-body{padding:.65rem;}
+.gal-caption-inp{
+  width:100%;padding:5px 8px;font-size:.78rem;
+  border:1.5px solid #e0c8c8;border-radius:5px;
+  font-family:'Quicksand',sans-serif;outline:none;background:#fff;color:#2a1010;
+  transition:border-color .2s;margin-bottom:.45rem;
+}
+.gal-caption-inp:focus{border-color:#631717;}
+.gal-caption-inp::placeholder{color:#c4a0a0;}
+.gal-card-btns{display:flex;gap:.3rem;flex-wrap:wrap;}
+
+/* Upload drop zone */
+.gal-dropzone{
+  border:2px dashed #d4b0b0;border-radius:10px;
+  padding:1.4rem;text-align:center;cursor:pointer;
+  transition:all .22s;background:#fdf5f5;margin-bottom:1rem;
+}
+.gal-dropzone:hover,.gal-dropzone.over{border-color:#631717;background:#fdf0f0;}
+.gal-dropzone input{display:none;}
+
+/* Masonry preview grid */
+.gal-mosaic{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+  gap:.75rem;
+}
+
+/* Copy button */
+.copy-btn{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:.3rem .75rem;border-radius:20px;
+  background:rgba(99,23,23,.1);border:1px solid rgba(99,23,23,.25);
+  color:#631717;font-size:.7rem;font-weight:600;
+  font-family:'Quicksand',sans-serif;cursor:pointer;
+  transition:all .2s;
+}
+.copy-btn:hover{background:rgba(99,23,23,.18);border-color:#631717;}
+.copy-btn.copied{background:#631717;color:#fff;border-color:#631717;}
+
 .tip{background:#fff8f0;border:1px solid #f0d8b8;border-radius:8px;padding:.85rem 1rem;margin-bottom:1rem;font-size:.75rem;color:#8a4a10;line-height:1.75;}
 .tip strong{color:#6a3008;}
 .tip code{background:#fef0d8;padding:1px 4px;border-radius:3px;font-size:.72rem;}
@@ -301,34 +380,233 @@ function PhotoManager({ label, urlKey, posKey, shapeKey, data, onChange }) {
 // ══════════════════════════════════════════════
 // GALLERY ROW — định nghĩa NGOÀI để không mất focus
 // ══════════════════════════════════════════════
-function GalleryRow({ index, img, onChangeItem, onMove, onRemove, isFirst, isLast }) {
+// Upload ảnh gallery lên Supabase Storage
+async function uploadGalImg(file, showToast) {
+  if (!sb) throw new Error("Chưa kết nối Supabase");
+  const ext  = file.name.split(".").pop().toLowerCase();
+  const name = `gallery/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const { error } = await sb.storage.from("wedding-images").upload(name, file, { upsert:true });
+  if (error) throw error;
+  const { data } = sb.storage.from("wedding-images").getPublicUrl(name);
+  return data.publicUrl;
+}
+
+// GalleryCard — định nghĩa NGOÀI để không mất con trỏ
+function GalleryCard({ index, img, total, onChangeItem, onMove, onRemove, showToast }) {
+  const [uploading, setUploading] = useState(false);
+  const fileRef    = useRef(null);
+  const previewRef = useRef(null);
+  const dragRef    = useRef({ dragging:false, sx:0, sy:0, spx:50, spy:50 });
+
   const src = gd(img.url || "");
+  const pos = img.pos || "50% 50%";
+
+  // Parse "X% Y%"
+  const parsePct = (p) => {
+    const parts = (p || "50% 50%").trim().split(/\s+/);
+    return [parseFloat(parts[0])||50, parseFloat(parts[1])||50];
+  };
+
+  // Drag-to-pan
+  const onMD = (e) => {
+    if (!src) return;
+    e.preventDefault();
+    const [px, py] = parsePct(pos);
+    dragRef.current = { dragging:true, sx:e.clientX, sy:e.clientY, spx:px, spy:py };
+    const onMove = (em) => {
+      if (!dragRef.current.dragging) return;
+      const box = previewRef.current?.getBoundingClientRect();
+      if (!box) return;
+      const dx = (em.clientX - dragRef.current.sx) / box.width  * 100;
+      const dy = (em.clientY - dragRef.current.sy) / box.height * 100;
+      const nx = Math.max(0, Math.min(100, dragRef.current.spx - dx));
+      const ny = Math.max(0, Math.min(100, dragRef.current.spy - dy));
+      onChangeItem(index, "pos", `${nx.toFixed(1)}% ${ny.toFixed(1)}%`);
+    };
+    const onUp = () => { dragRef.current.dragging=false; window.removeEventListener("mousemove",onMove); window.removeEventListener("mouseup",onUp); };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup",   onUp);
+  };
+
+  // Touch drag
+  const [touch0, setTouch0] = useState(null);
+  const onTS = (e) => {
+    if (!src) return;
+    const t = e.touches[0];
+    const [px, py] = parsePct(pos);
+    dragRef.current = { dragging:true, sx:t.clientX, sy:t.clientY, spx:px, spy:py };
+    setTouch0({ x:t.clientX, y:t.clientY });
+  };
+  const onTM = (e) => {
+    if (!dragRef.current.dragging||!src) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    const box = previewRef.current?.getBoundingClientRect();
+    if (!box) return;
+    const dx = (t.clientX - dragRef.current.sx) / box.width  * 100;
+    const dy = (t.clientY - dragRef.current.sy) / box.height * 100;
+    const nx = Math.max(0, Math.min(100, dragRef.current.spx - dx));
+    const ny = Math.max(0, Math.min(100, dragRef.current.spy - dy));
+    onChangeItem(index, "pos", `${nx.toFixed(1)}% ${ny.toFixed(1)}%`);
+  };
+
+  // Upload
+  const handleUpload = async (e) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadGalImg(file, showToast);
+      onChangeItem(index, "url", url);
+      showToast("✓ Upload thành công!");
+    } catch(err) {
+      showToast("Lỗi upload: " + err.message, "error");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  // Size options để tạo layout mosaic
+  const SIZE_OPTS = [
+    { key:"1x1", lbl:"Vuông" },
+    { key:"2x1", lbl:"Ngang" },
+    { key:"1x2", lbl:"Dọc" },
+  ];
+
   return (
-    <div className="gal-row">
-      <div className="gal-thumb">
+    <div className="gal-card">
+      {/* Preview + drag */}
+      <div ref={previewRef} className="gal-card-preview"
+        onMouseDown={onMD} onTouchStart={onTS} onTouchMove={onTM}
+        style={{ touchAction:"none" }}>
         {src
-          ? <img src={src} alt="" onError={e => e.target.style.display="none"}/>
-          : <span>No img</span>
+          ? <img src={src} alt="" style={{ objectPosition: pos }} onError={e=>e.target.style.display="none"}/>
+          : <div className="gal-card-preview-empty"><span style={{fontSize:"1.8rem"}}>🖼</span><span style={{fontSize:".65rem"}}>Chưa có ảnh — Kéo để căn chỉnh</span></div>
         }
+        <div className="gal-card-order">#{index+1}</div>
+        {src && <div className="gal-card-size">{img.size||"1x1"} · {pos}</div>}
+        {/* Actions overlay */}
+        <div className="gal-card-actions">
+          <button onClick={()=>onMove(index,-1)} disabled={index===0}
+            style={{flex:1,padding:"3px",background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:4,cursor:"pointer",fontSize:".65rem",fontWeight:700}}>↑</button>
+          <button onClick={()=>onMove(index,1)} disabled={index===total-1}
+            style={{flex:1,padding:"3px",background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:4,cursor:"pointer",fontSize:".65rem",fontWeight:700}}>↓</button>
+          <button onClick={()=>onRemove(index)}
+            style={{flex:1,padding:"3px",background:"rgba(220,38,38,.7)",border:"none",color:"#fff",borderRadius:4,cursor:"pointer",fontSize:".65rem",fontWeight:700}}>🗑</button>
+        </div>
       </div>
-      <div className="gal-inputs">
-        <input className="inp" value={img.url || ""} placeholder="Link Google Drive hoặc URL ảnh..."
-          style={{ fontSize:".78rem" }}
-          onChange={e => onChangeItem(index, "url", e.target.value)}
-          autoComplete="off"/>
-        <input className="inp" value={img.caption || ""} placeholder="Caption (tuỳ chọn)"
-          style={{ fontSize:".78rem" }}
-          onChange={e => onChangeItem(index, "caption", e.target.value)}
-          autoComplete="off"/>
+
+      <div className="gal-card-body">
+        {/* URL input */}
+        <input className="gal-caption-inp" value={img.url||""} placeholder="Link Google Drive hoặc URL ảnh..."
+          onChange={e=>onChangeItem(index,"url",e.target.value)} autoComplete="off"/>
+
+        {/* Caption */}
+        <input className="gal-caption-inp" value={img.caption||""} placeholder="Caption (tuỳ chọn)..."
+          onChange={e=>onChangeItem(index,"caption",e.target.value)} autoComplete="off"/>
+
+        {/* Buttons */}
+        <div className="gal-card-btns">
+          <input ref={fileRef} type="file" accept="image/*" style={{display:"none"}} onChange={handleUpload}/>
+          <button className="btn-o" onClick={()=>fileRef.current?.click()} disabled={uploading}
+            style={{fontSize:".68rem",padding:".3rem .75rem"}}>
+            {uploading?"⏳ Upload...":"📁 Upload"}
+          </button>
+          {src&&<button className="btn-o" onClick={()=>onChangeItem(index,"pos","50% 50%")}
+            style={{fontSize:".68rem",padding:".3rem .75rem"}}>↺ Reset vị trí</button>}
+          {/* Size chọn layout */}
+          {SIZE_OPTS.map(s=>(
+            <button key={s.key}
+              onClick={()=>onChangeItem(index,"size",s.key)}
+              style={{fontSize:".65rem",padding:".25rem .6rem",borderRadius:99,border:"1.5px solid",
+                borderColor:(img.size||"1x1")===s.key?"#631717":"#e0c8c8",
+                background:(img.size||"1x1")===s.key?"#631717":"transparent",
+                color:(img.size||"1x1")===s.key?"#fff":"#8a5050",
+                cursor:"pointer",fontFamily:"'Quicksand',sans-serif",fontWeight:600}}>
+              {s.lbl}
+            </button>
+          ))}
+        </div>
       </div>
-      <div className="gal-acts">
-        <button className="btn-o" onClick={() => onMove(index,-1)} disabled={isFirst}
-          style={{ padding:".28rem .6rem",fontSize:".7rem" }}>↑</button>
-        <button className="btn-o" onClick={() => onMove(index,1)} disabled={isLast}
-          style={{ padding:".28rem .6rem",fontSize:".7rem" }}>↓</button>
-        <button className="btn-d" onClick={() => onRemove(index)}
-          style={{ padding:".28rem .6rem",fontSize:".7rem" }}>🗑</button>
-      </div>
+    </div>
+  );
+}
+
+// ── GalleryDropzone — kéo thả hoặc chọn nhiều ảnh ──
+function GalleryDropzone({ onAddItems, showToast }) {
+  const [over, setOver] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef(null);
+
+  const processFiles = async (files) => {
+    if (!files || !files.length) return;
+    setUploading(true);
+    const newItems = [];
+    for (const file of Array.from(files)) {
+      try {
+        if (!sb) {
+          // Không có Supabase — dùng URL object preview tạm
+          const url = URL.createObjectURL(file);
+          newItems.push({ url, caption: file.name.replace(/\.[^.]+$/, ""), pos:"50% 50%", size:"1x1" });
+        } else {
+          const ext  = file.name.split(".").pop().toLowerCase();
+          const name = `gallery/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+          const { error } = await sb.storage.from("wedding-images").upload(name, file, { upsert:true });
+          if (error) throw error;
+          const { data } = sb.storage.from("wedding-images").getPublicUrl(name);
+          newItems.push({ url: data.publicUrl, caption: "", pos:"50% 50%", size:"1x1" });
+        }
+      } catch(err) {
+        showToast("Lỗi upload: " + err.message, "error");
+      }
+    }
+    if (newItems.length) {
+      onAddItems(newItems);
+      showToast(`✓ Đã thêm ${newItems.length} ảnh!`);
+    }
+    setUploading(false);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  return (
+    <div className={`gal-dropzone${over?" over":""}`}
+      onDragOver={e=>{e.preventDefault();setOver(true);}}
+      onDragLeave={()=>setOver(false)}
+      onDrop={e=>{e.preventDefault();setOver(false);processFiles(e.dataTransfer.files);}}
+      onClick={()=>fileRef.current?.click()}>
+      <input ref={fileRef} type="file" accept="image/*" multiple onChange={e=>processFiles(e.target.files)}/>
+      <div style={{fontSize:"2rem",marginBottom:".4rem"}}>{uploading?"⏳":"📁"}</div>
+      <p style={{fontSize:".82rem",fontWeight:600,color:"#7a4040",marginBottom:".2rem"}}>
+        {uploading?"Đang upload ảnh...":"Kéo thả ảnh vào đây để upload"}
+      </p>
+      <p style={{fontSize:".72rem",color:"#a08080"}}>Hỗ trợ JPG, PNG, WebP · Chọn nhiều ảnh cùng lúc</p>
+    </div>
+  );
+}
+
+// ── CopyRow — nút copy số tài khoản ──
+function CopyRow({ label, text }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(text).then(()=>{
+      setCopied(true);
+      setTimeout(()=>setCopied(false), 2000);
+    }).catch(()=>{
+      // Fallback
+      const el = document.createElement("textarea");
+      el.value = text; document.body.appendChild(el);
+      el.select(); document.execCommand("copy");
+      document.body.removeChild(el);
+      setCopied(true);
+      setTimeout(()=>setCopied(false), 2000);
+    });
+  };
+  return (
+    <div style={{display:"flex",alignItems:"center",gap:".5rem",marginBottom:".8rem"}}>
+      <code style={{flex:1,padding:".4rem .75rem",background:"#fdf5f5",border:"1px solid #e8d8d8",borderRadius:6,fontSize:".82rem",color:"#631717",fontWeight:700,letterSpacing:".05em"}}>{text}</code>
+      <button className={`copy-btn${copied?" copied":""}`} onClick={copy}>
+        {copied?"✓ Đã copy":"📋 Copy"}
+      </button>
     </div>
   );
 }
@@ -619,32 +897,37 @@ export default function AdminPage() {
 
           {/* ══ GALLERY ══ */}
           {tab==="gallery"&&(<>
-            <div className="tip">
-              <strong>🎞 Gallery động</strong> — hiển thị lưới 2 cột trong thiệp.<br/>
-              Mỗi ảnh là link Google Drive hoặc URL ảnh bất kỳ.<br/>
-              Dùng ↑↓ để sắp xếp thứ tự. Caption hiện trong lightbox khi nhấn vào ảnh.
-            </div>
+            {/* Dropzone upload nhiều ảnh từ máy */}
+            <GalleryDropzone onAddItems={(newItems)=>setGal(g=>[...g,...newItems])} showToast={showToast}/>
+
             <div className="card">
               <div className="card-t">
                 🎞 Gallery ({gallery.length} ảnh)
-                <button className="btn-o" onClick={addGal} style={{ marginLeft:"auto",fontSize:".72rem",padding:".32rem .8rem" }}>+ Thêm ảnh</button>
+                <div style={{display:"flex",gap:".4rem",marginLeft:"auto"}}>
+                  <button className="btn-o" onClick={addGal} style={{fontSize:".7rem",padding:".3rem .75rem"}}>+ Link/URL</button>
+                </div>
+              </div>
+              <div className="tip" style={{marginBottom:".8rem",fontSize:".72rem"}}>
+                📌 <strong>Kéo ảnh</strong> để căn chỉnh vùng hiển thị &nbsp;|&nbsp;
+                Chọn <strong>Vuông/Ngang/Dọc</strong> để tạo layout mosaic nghệ thuật &nbsp;|&nbsp;
+                Ảnh sẽ tự sắp xếp theo kích thước đã chọn
               </div>
               {gallery.length===0?(
-                <div style={{ textAlign:"center",padding:"2rem",color:"#a08080" }}>
-                  <p style={{ fontSize:"1.4rem",marginBottom:".5rem" }}>🖼</p>
-                  <p style={{ fontSize:".82rem" }}>Chưa có ảnh. Nhấn "+ Thêm ảnh" để bắt đầu.</p>
+                <div style={{textAlign:"center",padding:"2rem",color:"#a08080"}}>
+                  <p style={{fontSize:"1.8rem",marginBottom:".5rem"}}>🖼</p>
+                  <p style={{fontSize:".82rem"}}>Kéo thả ảnh vào ô trên, hoặc nhấn "+ Link/URL" để thêm</p>
                 </div>
               ):(
-                <div style={{ display:"flex",flexDirection:"column",gap:".75rem" }}>
+                <div className="gal-mosaic">
                   {gallery.map((img,i)=>(
-                    <GalleryRow key={i} index={i} img={img}
+                    <GalleryCard key={`gal-${i}`} index={i} img={img} total={gallery.length}
                       onChangeItem={setGalItem} onMove={moveGal} onRemove={removeGal}
-                      isFirst={i===0} isLast={i===gallery.length-1}/>
+                      showToast={showToast}/>
                   ))}
                 </div>
               )}
             </div>
-            <button className="btn-p" onClick={save} disabled={saving} style={{ width:"100%" }}>{saving?"Đang lưu...":"💾 Lưu gallery"}</button>
+            <button className="btn-p" onClick={save} disabled={saving} style={{width:"100%"}}>{saving?"Đang lưu...":"💾 Lưu gallery"}</button>
           </>)}
 
           {/* ══ MEDIA ══ */}
@@ -681,15 +964,17 @@ export default function AdminPage() {
               <div className="card-t">💳 QR Chú Rể</div>
               <div className="field-row"><Field name="qr_groom_bank" label="Ngân hàng" value={data.qr_groom_bank} onChange={handleChange}/><Field name="qr_groom_num" label="Số tài khoản" value={data.qr_groom_num} onChange={handleChange}/></div>
               <Field name="qr_groom_name" label="Tên chủ tài khoản (IN HOA)" value={data.qr_groom_name} onChange={handleChange}/>
+              {data.qr_groom_num&&<CopyRow label="Copy số TK" text={data.qr_groom_num}/>}
               <PhotoManager data={data} onChange={handleChange} label="Ảnh QR Code Chú Rể" urlKey="qr_groom_img" posKey="hero_pos" shapeKey="hero_shape"/>
             </div>
             <div className="card">
               <div className="card-t">💳 QR Cô Dâu</div>
               <div className="field-row"><Field name="qr_bride_bank" label="Ngân hàng" value={data.qr_bride_bank} onChange={handleChange}/><Field name="qr_bride_num" label="Số tài khoản" value={data.qr_bride_num} onChange={handleChange}/></div>
               <Field name="qr_bride_name" label="Tên chủ tài khoản (IN HOA)" value={data.qr_bride_name} onChange={handleChange}/>
+              {data.qr_bride_num&&<CopyRow label="Copy số TK" text={data.qr_bride_num}/>}
               <PhotoManager data={data} onChange={handleChange} label="Ảnh QR Code Cô Dâu" urlKey="qr_bride_img" posKey="hero_pos" shapeKey="hero_shape"/>
             </div>
-            <button className="btn-p" onClick={save} disabled={saving} style={{ width:"100%" }}>{saving?"Đang lưu...":"💾 Lưu QR"}</button>
+            <button className="btn-p" onClick={save} disabled={saving} style={{width:"100%"}}>{saving?"Đang lưu...":"💾 Lưu QR"}</button>
           </>)}
 
           {/* ══ RSVP ══ */}
