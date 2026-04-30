@@ -1,3 +1,9 @@
+// ============================================================
+// WEDDING APP v6 — React + Supabase
+// Fix: nhạc auto-play mobile, icon nốt nhạc, ảnh bo cong,
+//      upload ảnh thủ công, căn chỉnh ảnh object-position,
+//      auto-scroll mobile dùng window.scrollBy
+// ============================================================
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
 
@@ -73,6 +79,11 @@ const DEF = {
   wide2_pos:"center center",pair1_pos:"center center",
   pair2_pos:"center center",full_pos:"center center",
   music_youtube:"",gallery:[],
+  // Kiểu bo cong (đọc từ Supabase, default từ DEF)
+  hero_shape:"wave",couple_shape:"art",large_shape:"soft",
+  sm1_shape:"wave",sm2_shape:"art",
+  wide1_shape:"soft",wide2_shape:"soft",
+  pair1_shape:"soft",pair2_shape:"soft",full_shape:"none",
 };
 
 // ══════════════════════════════════════════════
@@ -735,7 +746,7 @@ export default function WeddingApp() {
 
         {/* Ảnh hero — trái, bo cong wave */}
         <Rv dir="u" delay={0} style={{position:"absolute",bottom:0,left:16,width:"262px",height:"440px",zIndex:1}}>
-          <Photo url={d.hero_img} pos={d.hero_pos} shape="wave"
+          <Photo url={d.hero_img} pos={d.hero_pos} shape={d.hero_shape||"wave"}
             style={{width:"100%",height:"100%",
               WebkitMaskImage:"linear-gradient(180deg,black 58%,transparent 100%)",
               maskImage:"linear-gradient(180deg,black 58%,transparent 100%)"}}/>
@@ -810,7 +821,7 @@ export default function WeddingApp() {
         </div>
         {/* Ảnh đôi bo cong nghệ thuật */}
         <Rv dir="s" delay={0.1}>
-          <Photo url={d.couple_img} pos={d.couple_pos} shape="art"
+          <Photo url={d.couple_img} pos={d.couple_pos} shape={d.couple_shape||"art"}
             style={{width:"220px",height:"220px",margin:"0 auto 14px",display:"block",
               boxShadow:"0 8px 28px rgba(99,23,23,.3)"}}/>
         </Rv>
@@ -910,7 +921,7 @@ export default function WeddingApp() {
           <QB text={d.quote1} fontSize={17}/>
         </Rv>
         <Rv dir="u" delay={0.05} style={{position:"relative",zIndex:1}}>
-          <Photo url={d.photo_large} pos={d.large_pos} shape="soft"
+          <Photo url={d.photo_large} pos={d.large_pos} shape={d.large_shape||"soft"}
             style={{width:"100%",height:"280px",boxShadow:"0 8px 28px rgba(0,0,0,.5)"}}/>
         </Rv>
       </div>
@@ -922,7 +933,7 @@ export default function WeddingApp() {
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px",alignItems:"center"}}>
           <Rv dir="r" delay={0.05}>
             {/* Ảnh bo cong wave */}
-            <Photo url={d.photo_sm1} pos={d.sm1_pos} shape="wave"
+            <Photo url={d.photo_sm1} pos={d.sm1_pos} shape={d.sm1_shape||"wave"}
               style={{width:"100%",height:"210px",boxShadow:"0 6px 22px rgba(0,0,0,.5)"}}/>
           </Rv>
           <Rv dir="l" delay={0.1}>
@@ -934,7 +945,7 @@ export default function WeddingApp() {
       {/* Ảnh ngang 1 — bo soft */}
       <div style={{padding:"0 18px 14px"}} className="sec-night">
         <Rv dir="s" delay={0.05}>
-          <Photo url={d.photo_wide1} pos={d.wide1_pos} shape="soft"
+          <Photo url={d.photo_wide1} pos={d.wide1_pos} shape={d.wide1_shape||"soft"}
             style={{width:"100%",height:"200px",boxShadow:"0 6px 22px rgba(0,0,0,.5)"}}/>
         </Rv>
       </div>
@@ -950,7 +961,7 @@ export default function WeddingApp() {
           </Rv>
           <Rv dir="l" delay={0.05}>
             {/* Ảnh bo art */}
-            <Photo url={d.photo_sm2} pos={d.sm2_pos} shape="art"
+            <Photo url={d.photo_sm2} pos={d.sm2_pos} shape={d.sm2_shape||"art"}
               style={{width:"100%",height:"210px",boxShadow:"0 6px 22px rgba(0,0,0,.5)"}}/>
           </Rv>
         </div>
@@ -963,11 +974,11 @@ export default function WeddingApp() {
         </Rv>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
           <Rv dir="r" delay={0.1}>
-            <Photo url={d.photo_pair1} pos={d.pair1_pos} shape="soft"
+            <Photo url={d.photo_pair1} pos={d.pair1_pos} shape={d.pair1_shape||"soft"}
               style={{width:"100%",height:"215px",boxShadow:"0 6px 22px rgba(0,0,0,.5)"}}/>
           </Rv>
           <Rv dir="l" delay={0.15}>
-            <Photo url={d.photo_pair2} pos={d.pair2_pos} shape="soft"
+            <Photo url={d.photo_pair2} pos={d.pair2_pos} shape={d.pair2_shape||"soft"}
               style={{width:"100%",height:"215px",boxShadow:"0 6px 22px rgba(0,0,0,.5)"}}/>
           </Rv>
         </div>
@@ -976,7 +987,7 @@ export default function WeddingApp() {
       {/* Ảnh ngang 2 + Quote 5 */}
       <div style={{padding:"14px 18px 18px"}} className="sec-dark">
         <Rv dir="s" delay={0.05} style={{marginBottom:"12px"}}>
-          <Photo url={d.photo_wide2} pos={d.wide2_pos} shape="soft"
+          <Photo url={d.photo_wide2} pos={d.wide2_pos} shape={d.wide2_shape||"soft"}
             style={{width:"100%",height:"195px",boxShadow:"0 6px 22px rgba(0,0,0,.5)"}}/>
         </Rv>
         <Rv dir="u" delay={0.12}><QB text={d.quote5} fontSize={20}/></Rv>
@@ -1009,7 +1020,7 @@ export default function WeddingApp() {
       {d.photo_full&&(<>
         <div className="hdiv"/>
         <div style={{position:"relative",overflow:"hidden"}}>
-          <Photo url={d.photo_full} pos={d.full_pos} shape="none"
+          <Photo url={d.photo_full} pos={d.full_pos} shape={d.full_shape||"none"}
             style={{width:"100%",height:"340px"}}/>
           <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.48)",display:"flex",alignItems:"center",justifyContent:"center"}}>
             <p style={{fontFamily:"'Cinzel',serif",fontWeight:600,fontSize:"22px",color:"rgba(255,210,210,.2)",letterSpacing:".18em",textTransform:"uppercase",userSelect:"none"}}>LOVE</p>
