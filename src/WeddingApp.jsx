@@ -159,120 +159,120 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 .rv-rb label{display:flex;align-items:center;gap:7px;font-size:12px;color:#444;font-family:'Quicksand',sans-serif;cursor:pointer;margin-bottom:6px;}
 .rv-rb input{accent-color:#631717;}
 
-/* ── RSVP Live Ticker — Fixed bottom bar ── */
-/* Nằm cố định cuối màn hình, chồng lên nội dung,
-   KHÔNG ảnh hưởng layout bên dưới (pointer-events:none cho wrapper) */
+/* ── RSVP Live Feed — Fixed bottom 20% màn hình ──
+   Chữ chạy từng hàng từ dưới lên, chồng lên nội dung,
+   pointer-events:none nên không ảnh hưởng gì phía sau */
 #live-ticker{
   position:fixed;
   bottom:0; left:50%;
   transform:translateX(-50%);
   width:451px;
+  height:20vh;          /* 20% chiều cao màn hình */
+  min-height:130px;
+  max-height:200px;
   z-index:8888;
-  pointer-events:none; /* xuyên qua click */
-  /* hiện sau 3s */
-  animation:tickerFadeIn 1s ease .5s both;
+  pointer-events:none;  /* xuyên qua click — không block tương tác */
+  opacity:0;
+  animation:tkFadeIn .8s ease 1s forwards;
 }
 @media(max-width:460px){#live-ticker{width:100vw;}}
-@keyframes tickerFadeIn{from{opacity:0;transform:translateX(-50%) translateY(20px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+@keyframes tkFadeIn{to{opacity:1;}}
 
-.ticker-bar{
-  /* Nền glassmorphism đậm — thấy qua nhưng chữ rõ */
-  background:linear-gradient(90deg,
-    rgba(20,2,2,.88) 0%,
-    rgba(50,8,8,.92) 40%,
-    rgba(50,8,8,.92) 60%,
-    rgba(20,2,2,.88) 100%
+/* Nền gradient từ trong suốt → đậm dần xuống dưới */
+.tk-bg{
+  position:absolute;inset:0;
+  background:linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(10,2,2,.55) 35%,
+    rgba(15,3,3,.82) 65%,
+    rgba(20,4,4,.95) 100%
   );
-  backdrop-filter:blur(12px);
-  -webkit-backdrop-filter:blur(12px);
-  border-top:1px solid rgba(180,40,40,.35);
-  box-shadow:0 -4px 24px rgba(0,0,0,.45);
-  padding:0;
-  overflow:hidden;
-  height:38px;
-  display:flex;align-items:center;
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+}
+/* Đường viền trên */
+.tk-border{
+  position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(180,40,40,.4),transparent);
 }
 
-/* Label LIVE bên trái */
-.ticker-label{
-  flex-shrink:0;
+/* Header LIVE */
+.tk-header{
+  position:absolute;top:0;left:0;right:0;
   display:flex;align-items:center;gap:5px;
-  padding:0 10px 0 12px;
-  border-right:1px solid rgba(180,40,40,.3);
-  height:100%;
-  background:rgba(99,23,23,.5);
+  padding:5px 10px 3px;
+  z-index:2;
 }
-.ticker-dot{
-  width:6px;height:6px;border-radius:50%;
-  background:#ff3333;
-  box-shadow:0 0 6px #ff3333;
-  animation:tdot 1.1s ease-in-out infinite;
+.tk-dot{
+  width:5px;height:5px;border-radius:50%;background:#ff3333;
+  box-shadow:0 0 5px #ff3333;
+  animation:tkDot 1.1s ease-in-out infinite;
 }
-@keyframes tdot{0%,100%{opacity:1;}50%{opacity:.3;}}
-.ticker-lbl-txt{
-  font-size:8px;font-weight:800;letter-spacing:.18em;
-  color:rgba(255,180,180,.9);font-family:'Quicksand',sans-serif;
+@keyframes tkDot{0%,100%{opacity:1;}50%{opacity:.25;}}
+.tk-lbl{
+  font-size:7.5px;font-weight:800;letter-spacing:.2em;
+  color:rgba(255,170,170,.8);font-family:'Quicksand',sans-serif;
   text-transform:uppercase;
 }
+.tk-count{
+  margin-left:auto;font-size:7.5px;
+  color:rgba(255,150,150,.5);font-family:'Quicksand',sans-serif;
+}
 
-/* Track cuộn */
-.ticker-track{
-  flex:1;
+/* Container cuộn */
+.tk-scroll{
+  position:absolute;
+  top:22px; left:0; right:0; bottom:0;
   overflow:hidden;
-  height:100%;
-  position:relative;
+  z-index:2;
 }
-/* Fade hai bên */
-.ticker-track::before,.ticker-track::after{
-  content:'';position:absolute;top:0;bottom:0;width:28px;z-index:1;pointer-events:none;
-}
-.ticker-track::before{left:0;background:linear-gradient(90deg,rgba(30,4,4,.9),transparent);}
-.ticker-track::after{right:0;background:linear-gradient(270deg,rgba(30,4,4,.9),transparent);}
-
-/* Belt chứa tất cả items — CSS animation cuộn liên tục */
-.ticker-belt{
-  display:flex;align-items:center;
-  white-space:nowrap;
-  height:100%;
-  /* duration sẽ set bằng inline style tùy số items */
-  animation:tickerScroll linear infinite;
+/* Inner — dịch chuyển bằng JS transform */
+.tk-inner{
+  position:absolute;
+  bottom:0; left:0; right:0;
+  display:flex;flex-direction:column;
+  align-items:flex-start;
+  padding:0 10px 6px;
   will-change:transform;
 }
-@keyframes tickerScroll{
-  0%  { transform:translateX(0); }
-  100%{ transform:translateX(-50%); }
-}
-.ticker-item{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:0 20px;
+/* Mỗi hàng feed */
+.tk-row{
+  display:flex;align-items:baseline;
+  gap:5px;
+  padding:3px 0;
   flex-shrink:0;
+  width:100%;
+  opacity:1;
 }
-.ticker-avatar{
-  width:20px;height:20px;border-radius:50%;
-  background:linear-gradient(135deg,#8a2020,#631717);
+.tk-av{
+  width:18px;height:18px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,#7a1a1a,#631717);
   color:#fff;display:inline-flex;align-items:center;justify-content:center;
-  font-size:9px;font-weight:700;
-  border:1px solid rgba(255,150,150,.25);flex-shrink:0;
+  font-size:8px;font-weight:700;
+  border:1px solid rgba(255,130,130,.2);
 }
-.ticker-name{
-  font-size:11.5px;font-weight:700;
-  color:rgba(255,205,205,.95);
-  font-family:'Quicksand',sans-serif;
-  text-shadow:0 1px 3px rgba(0,0,0,.6);
+.tk-name{
+  font-size:11px;font-weight:700;flex-shrink:0;
+  color:rgba(255,200,200,.95);font-family:'Quicksand',sans-serif;
+  text-shadow:0 1px 3px rgba(0,0,0,.7);
 }
-.ticker-badge{
-  font-size:9px;padding:1px 6px;border-radius:99px;font-weight:600;
+.tk-badge{
+  font-size:8px;padding:1px 5px;border-radius:99px;font-weight:600;flex-shrink:0;
 }
-.ticker-badge.yes{background:rgba(160,25,25,.7);color:rgba(255,195,195,.95);border:1px solid rgba(255,130,130,.25);}
-.ticker-badge.no {background:rgba(50,50,50,.6);color:rgba(190,190,190,.75);}
-.ticker-msg{
-  font-size:10.5px;color:rgba(255,180,180,.75);
+.tk-badge.yes{background:rgba(140,20,20,.7);color:rgba(255,185,185,.95);}
+.tk-badge.no {background:rgba(50,50,50,.55);color:rgba(185,185,185,.75);}
+.tk-msg{
+  font-size:10px;color:rgba(255,175,175,.78);
   font-family:'Quicksand',sans-serif;font-style:italic;
-  max-width:180px;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  flex:1;min-width:0;
 }
-.ticker-sep{
-  color:rgba(180,40,40,.45);font-size:14px;margin:0 4px;
-  flex-shrink:0;
+/* Fade top của scroll area */
+.tk-fade{
+  position:absolute;top:22px;left:0;right:0;height:30px;
+  background:linear-gradient(180deg,rgba(15,3,3,.9),transparent);
+  z-index:3;pointer-events:none;
 }
 
 /* ── Lightbox ── */
@@ -630,79 +630,111 @@ function RSVPForm({d}) {
 }
 
 // ══════════════════════════════════════════════
-// RSVP LIVE TICKER — Fixed bar đáy màn hình
-// Chữ cuộn ngang liên tục, chồng lên nội dung,
-// Không ảnh hưởng layout, pointer-events:none
+// RSVP LIVE FEED — Fixed bottom 20vh
+// Từng hàng cuộn từ dưới lên, loop liên tục
+// Hiện đầy đủ: tên + badge + lời chúc
 // ══════════════════════════════════════════════
-function RSVPFeed({bgUrl=""}) {
+function RSVPFeed() {
   const [items, setItems] = useState([]);
-  const [dur,   setDur]   = useState(30); // giây để chạy qua 1 vòng
+  const innerRef = useRef(null);
+  const posRef   = useRef(0);   // vị trí translateY hiện tại (px, âm = cuộn lên)
+  const rafRef   = useRef(null);
+  const ROW_H    = 28; // px mỗi hàng (padding+font)
+  const SPEED    = 0.35; // px/frame — chậm rãi, dễ đọc
 
   const DEMOS = [
-    {id:"d1",name:"Nguyễn Thị Lan",  attending:true, guests_count:2,message:"Chúc mừng hạnh phúc! 🌹"},
-    {id:"d2",name:"Trần Văn Minh",   attending:true, guests_count:3,message:"Chúc hai bạn trăm năm hạnh phúc"},
-    {id:"d3",name:"Lê Thị Hoa",      attending:false,guests_count:0,message:"Tiếc quá không đến được!"},
-    {id:"d4",name:"Phạm Đức Anh",    attending:true, guests_count:2,message:""},
-    {id:"d5",name:"Võ Thị Mai",      attending:true, guests_count:4,message:"Hạnh phúc mãi mãi nha ❤️"},
-    {id:"d6",name:"Đặng Quốc Hùng",  attending:true, guests_count:2,message:"Chúc mừng đám cưới"},
-    {id:"d7",name:"Phùng Thị Thanh", attending:true, guests_count:3,message:"Rất vui khi được mời ♥"},
+    {id:"d1",name:"Nguyễn Thị Lan",  attending:true, guests_count:2,  message:"Chúc mừng hạnh phúc! Mong hai bạn luôn hạnh phúc bên nhau 🌹"},
+    {id:"d2",name:"Trần Văn Minh",   attending:true, guests_count:3,  message:"Trăm năm hạnh phúc, vạn sự như ý!"},
+    {id:"d3",name:"Lê Thị Hoa",      attending:false,guests_count:0,  message:"Rất tiếc không đến được, chúc hai bạn mãi yêu nhau"},
+    {id:"d4",name:"Phạm Đức Anh",    attending:true, guests_count:2,  message:""},
+    {id:"d5",name:"Võ Thị Mai",      attending:true, guests_count:4,  message:"Hạnh phúc mãi mãi nha, love you both ❤️"},
+    {id:"d6",name:"Đặng Quốc Hùng",  attending:true, guests_count:2,  message:"Chúc đám cưới vui vẻ và hạnh phúc"},
+    {id:"d7",name:"Phùng Thị Thanh", attending:true, guests_count:3,  message:"Rất vui khi được tham dự ngày trọng đại này"},
+    {id:"d8",name:"Ngô Minh Tuấn",   attending:true, guests_count:1,  message:"Chúc mừng! Cầu mong cuộc hôn nhân đầy yêu thương"},
   ];
 
+  // Load data
   useEffect(()=>{
     if(!sb){ setItems(DEMOS); return; }
-    sb.from("rsvp_responses").select("*").order("created_at",{ascending:true}).limit(30)
+    sb.from("rsvp_responses")
+      .select("*").order("created_at",{ascending:true}).limit(50)
       .then(({data})=>{ setItems(data&&data.length>=3 ? data : DEMOS); });
-    const ch = sb.channel("rsvp_ticker")
+    const ch = sb.channel("rsvp_tk3")
       .on("postgres_changes",{event:"INSERT",schema:"public",table:"rsvp_responses"},(p)=>{
-        setItems(prev=>[...prev,p.new].slice(-40));
+        setItems(prev=>[...prev, p.new]);
       }).subscribe();
     return()=>sb.removeChannel(ch);
   },[]);
 
-  // Tính duration: ~80px/s, mỗi item ~180px
+  // RAF scroll — chạy khi items có dữ liệu
   useEffect(()=>{
-    const totalPx = items.length * 185;
-    setDur(Math.max(12, totalPx / 80));
-  },[items]);
+    if (!items.length) return;
+    const el = innerRef.current;
+    if (!el) return;
+
+    posRef.current = 0;
+    el.style.transform = "translateY(0px)";
+
+    const loop = () => {
+      const totalH = el.scrollHeight; // chiều cao toàn bộ nội dung
+      const visH   = el.parentElement?.clientHeight || 160;
+
+      // Nếu nội dung không đủ dài để cuộn thì không cần scroll
+      if (totalH <= visH) {
+        rafRef.current = requestAnimationFrame(loop);
+        return;
+      }
+
+      posRef.current += SPEED;
+
+      // Khi cuộn hết toàn bộ → reset về đầu liền mạch
+      if (posRef.current >= totalH) {
+        posRef.current = 0;
+      }
+
+      el.style.transform = `translateY(-${posRef.current.toFixed(2)}px)`;
+      rafRef.current = requestAnimationFrame(loop);
+    };
+
+    // Bắt đầu sau 800ms để render xong
+    const t = setTimeout(()=>{ rafRef.current = requestAnimationFrame(loop); }, 800);
+    return ()=>{
+      clearTimeout(t);
+      cancelAnimationFrame(rafRef.current);
+    };
+  }, [items]);
 
   const getInit = n => n ? n.trim()[0].toUpperCase() : "?";
 
-  // Nhân đôi để tạo loop liền mạch
-  const belt = [...items, ...items];
-
-  if (!items.length) return null;
-
   return(
     <div id="live-ticker">
-      <div className="ticker-bar">
-        {/* Label LIVE */}
-        <div className="ticker-label">
-          <div className="ticker-dot"/>
-          <span className="ticker-lbl-txt">LIVE</span>
-        </div>
+      <div className="tk-bg"/>
+      <div className="tk-border"/>
+      <div className="tk-fade"/>
 
-        {/* Track cuộn */}
-        <div className="ticker-track">
-          <div className="ticker-belt" style={{animationDuration:`${dur}s`}}>
-            {belt.map((r,i)=>(
-              <span key={`${r.id||i}-${i}`} className="ticker-item">
-                {/* Avatar */}
-                <span className="ticker-avatar">{getInit(r.name)}</span>
-                {/* Tên */}
-                <span className="ticker-name">{r.name}</span>
-                {/* Badge */}
-                <span className={`ticker-badge ${r.attending?"yes":"no"}`}>
-                  {r.attending ? `♥ ${r.guests_count||1} người` : "✗ Vắng"}
-                </span>
-                {/* Lời nhắn nếu có */}
-                {r.message && (
-                  <span className="ticker-msg">— {r.message}</span>
-                )}
-                {/* Separator */}
-                <span className="ticker-sep">✦</span>
+      {/* Header */}
+      <div className="tk-header">
+        <div className="tk-dot"/>
+        <span className="tk-lbl">LIVE · Xác nhận tham dự</span>
+        <span className="tk-count">{items.length} người</span>
+      </div>
+
+      {/* Scroll area */}
+      <div className="tk-scroll">
+        {/* Inner — double để loop liền mạch */}
+        <div ref={innerRef} className="tk-inner">
+          {[...items, ...items].map((r, i) => (
+            <div key={`${r.id||i}-${i}`} className="tk-row">
+              <div className="tk-av">{getInit(r.name)}</div>
+              <span className="tk-name">{r.name}</span>
+              <span className={`tk-badge ${r.attending?"yes":"no"}`}>
+                {r.attending ? `♥ ${r.guests_count||1} người` : "✗ Vắng"}
               </span>
-            ))}
-          </div>
+              {r.message && (
+                <span className="tk-msg">— {r.message}</span>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -755,138 +787,114 @@ export default function WeddingApp() {
     });
   },[]);
 
-  // ── AUTO SCROLL — mobile + desktop ──
-  // Nguyên tắc: code scroll xong mới cho phép scroll event → không bị nhầm
+  // ── AUTO SCROLL — không giật, mobile + desktop ──
   useEffect(()=>{
     const pw = document.getElementById("pw");
     const sh = document.getElementById("sh");
     if (!pw) return;
 
-    const SPEED    = 0.65;  // px/frame — đủ chậm để nhìn thấy
-    const RESUME   = 3000;  // ms: sau khi user dừng thì resume
-    const START_MS = 2000;  // ms: delay trước khi bắt đầu
+    const SPEED    = 0.6;   // px/frame
+    const RESUME   = 3000;  // ms resume sau khi user dừng
+    const START_MS = 2000;  // ms delay trước khi bắt đầu
 
     let raf       = null;
     let running   = false;
     let paused    = false;
     let resumeTmr = null;
 
-    // ── Phân biệt mobile / desktop ──
-    // Mobile: #pw là overflow:visible, scroll bằng window
-    // Desktop: #pw là scroll container
+    // Mobile: #pw overflow:visible → scroll bằng window
     const isMob = () => window.innerWidth <= 460;
-
     const getTop = () => isMob() ? window.scrollY : pw.scrollTop;
     const getMax = () => isMob()
       ? document.documentElement.scrollHeight - window.innerHeight
       : pw.scrollHeight - pw.clientHeight;
-
-    // Cờ "đang tự scroll" — set trước, clear sau khi scroll xong
-    let selfScrolling = false;
-
     const doScroll = (n) => {
-      selfScrolling = true;
       if (isMob()) window.scrollBy(0, n);
       else pw.scrollTop += n;
-      // Clear sau 16ms (1 frame) — đủ để scroll event xử lý xong
-      setTimeout(() => { selfScrolling = false; }, 16);
     };
 
-    // ── Loop ──
+    // ── RAF loop ──
     const loop = () => {
       if (!running) return;
       if (!paused) {
         doScroll(SPEED);
-        if (getTop() >= getMax() - 1) {
-          // Đến cuối → dừng hẳn
-          running = false;
-          return;
-        }
+        if (getTop() >= getMax() - 1) { running = false; return; }
       }
       raf = requestAnimationFrame(loop);
     };
 
-    // ── Pause khi user tương tác ──
-    const doPause = (hideHint = false) => {
-      if (selfScrolling) return; // bỏ qua — code đang tự scroll
+    // ── Pause / Resume ──
+    const pause = (hideHint = false) => {
       paused = true;
       if (hideHint && sh) sh.classList.add("gone");
       clearTimeout(resumeTmr);
       resumeTmr = setTimeout(() => { paused = false; }, RESUME);
     };
-
-    // ── Ẩn scroll hint khi đã cuộn xa ──
-    const hideHint = () => {
-      if (sh && getTop() > 80) sh.classList.add("gone");
-    };
-
-    // DESKTOP: wheel → pause ngay lập tức, dứt khoát
-    const onWheel = () => {
+    const hardPause = () => {   // dừng hẳn, ko tự resume
       paused = true;
-      if (sh) sh.classList.add("gone");
       clearTimeout(resumeTmr);
-      resumeTmr = setTimeout(() => { paused = false; }, RESUME);
+      if (sh) sh.classList.add("gone");
+    };
+    const hardResume = () => {  // resume thủ công
+      paused = false;
     };
 
-    // DESKTOP: scroll event (do user kéo thanh scroll hoặc keyboard)
-    const onPwScroll = () => {
-      hideHint();
-      doPause(false);
+    // ── DESKTOP: wheel ──
+    // Chỉ pause khi wheel, KHÔNG listen scroll event
+    // (scroll event sẽ fire cả khi code tự scroll → giật)
+    const onWheel = () => pause(true);
+
+    // ── DESKTOP: keyboard (PageDown, Space, Arrow) ──
+    const onKey = (e) => {
+      const keys = ["ArrowDown","ArrowUp","PageDown","PageUp","Space"," "];
+      if (keys.includes(e.key)) pause(false);
     };
 
-    // MOBILE: window scroll
-    const onWinScroll = () => {
-      hideHint();
-      doPause(false);
+    // ── MOBILE: touch ──
+    let ty0 = 0;
+    const onTS = (e) => { ty0 = e.touches[0].clientY; };
+    const onTM = (e) => {
+      if (Math.abs(e.touches[0].clientY - ty0) > 8) pause(true);
+    };
+    const onTE = () => {
+      // Touch end → resume sau RESUME ms (đã set trong pause)
     };
 
-    // MOBILE: touch
-    // - touchstart: ghi nhớ vị trí ban đầu
-    // - touchmove: nếu kéo > 8px thì pause
-    let touchY0 = 0;
-    let touchPaused = false;
-
-    const onTouchStart = (e) => {
-      touchY0 = e.touches[0].clientY;
-      touchPaused = false;
-    };
-
-    const onTouchMove = (e) => {
-      if (touchPaused) return;
-      const dy = Math.abs(e.touches[0].clientY - touchY0);
-      if (dy > 8) {
-        touchPaused = true;
-        paused = true;
-        if (sh) sh.classList.add("gone");
-        clearTimeout(resumeTmr);
-        resumeTmr = setTimeout(() => { paused = false; touchPaused = false; }, RESUME);
+    // ── Scroll hint ──
+    // Chỉ ẩn hint bằng cách track scrollTop thủ công trong loop
+    // (không dùng scroll event)
+    let hintHidden = false;
+    const origLoop = loop;
+    const wrappedLoop = () => {
+      if (!hintHidden && sh && getTop() > 80) {
+        sh.classList.add("gone");
+        hintHidden = true;
       }
+      origLoop(); // gọi loop thật
     };
 
-    // Thêm listeners
-    pw.addEventListener("wheel",          onWheel,      { passive: true });
-    pw.addEventListener("scroll",         onPwScroll,   { passive: true });
-    window.addEventListener("scroll",     onWinScroll,  { passive: true });
-    window.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchmove",  onTouchMove,  { passive: true });
+    // Thêm listeners — KHÔNG có scroll event listener
+    pw.addEventListener("wheel",          onWheel, { passive: true });
+    window.addEventListener("keydown",    onKey,   { passive: true });
+    window.addEventListener("touchstart", onTS,    { passive: true });
+    window.addEventListener("touchmove",  onTM,    { passive: true });
+    window.addEventListener("touchend",   onTE,    { passive: true });
 
-    // Bắt đầu sau delay
     const startTmr = setTimeout(() => {
       running = true;
-      raf = requestAnimationFrame(loop);
+      raf = requestAnimationFrame(wrappedLoop);
     }, START_MS);
 
-    // Cleanup
     return () => {
       clearTimeout(startTmr);
       clearTimeout(resumeTmr);
       cancelAnimationFrame(raf);
       running = false;
       pw.removeEventListener("wheel",          onWheel);
-      pw.removeEventListener("scroll",         onPwScroll);
-      window.removeEventListener("scroll",     onWinScroll);
-      window.removeEventListener("touchstart", onTouchStart);
-      window.removeEventListener("touchmove",  onTouchMove);
+      window.removeEventListener("keydown",    onKey);
+      window.removeEventListener("touchstart", onTS);
+      window.removeEventListener("touchmove",  onTM);
+      window.removeEventListener("touchend",   onTE);
     };
   },[]);
 
