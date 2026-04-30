@@ -474,6 +474,23 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 }
 .gal-cell:hover .gal-cell-cap{opacity:1;}
 
+/* ── QR reveal animation ── */
+@keyframes qrReveal{
+  from{opacity:0;transform:translateY(24px) scale(.94);}
+  to{opacity:1;transform:translateY(0) scale(1);}
+}
+.qr-revealed{
+  animation:qrReveal .5s cubic-bezier(.22,1,.36,1) forwards;
+}
+.gift-btn{
+  background:transparent;border:none;cursor:pointer;
+  font-size:64px;display:inline-block;
+  animation:wobble 2.8s ease-in-out infinite;
+  filter:drop-shadow(0 4px 12px rgba(0,0,0,.4));
+  transition:transform .15s;
+}
+.gift-btn:active{transform:scale(.9);}
+
 /* ── Copy toast ── */
 .copy-toast{
   position:fixed;bottom:calc(20vh + 55px);left:50%;
@@ -507,10 +524,29 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 .sec-night{background:linear-gradient(145deg,#110404,#200808);}
 
 @media(max-width:460px){
-  body{padding:0;background:#200a0a;display:block;}
-  #pw{width:100vw;max-height:none!important;height:auto!important;overflow:visible!important;overflow-y:visible!important;border-radius:0;border:none;box-shadow:none;}
+  body{
+    padding:0;
+    background:#200a0a;
+    /* Mobile: block layout để body scroll */
+    display:block;
+    /* Đủ không gian cho ticker + input ở đáy */
+    padding-bottom:calc(20vh + 50px);
+  }
+  #pw{
+    width:100vw;
+    /* PHẢI overflow:visible để body scroll */
+    max-height:none!important;
+    height:auto!important;
+    overflow:visible!important;
+    overflow-y:visible!important;
+    /* Bỏ padding-bottom vì body đã có */
+    padding-bottom:0!important;
+    border-radius:0;border:none;box-shadow:none;
+  }
   #aud{right:10px;top:10px;}
   #sh{display:none;}
+  /* Ticker full width trên mobile */
+  #live-ticker{width:100vw;left:0;transform:none;}
 }
   `}</style>
 );
@@ -564,100 +600,93 @@ function Particles() {
   );
 }
 
-// ── Music — Auto-play với kỹ thuật AudioContext unlock ──
-// Mẹo: Tạo AudioContext + resume() trong gesture handler đầu tiên
-// Sau khi resume() thành công → browser cho phép play bất kỳ audio
-// Đây là cách hợp lệ duy nhất để auto-play trên mobile Safari/Chrome
+// ── Music — Mobile-first autoplay ──
+// Kỹ thuật: iframe load muted + unMute trong SYNCHRONOUS gesture handler
+// Mobile browser CHỈ cho phép unMute nếu gọi TRỰC TIẾP trong touch/click handler
+// KHÔNG được gọi qua async/setTimeout/Promise
 function Music({url}) {
-  const [on,setOn]       = useState(false);
-  const [ready,setReady] = useState(false);
-  const ifrRef           = useRef(null);
-  const unlockedRef      = useRef(false);
-  const acRef            = useRef(null);
-  const id               = ytId(url);
+  const [on,  setOn]  = useState(false);
+  const ifrRef        = useRef(null);
+  const mutedRef      = useRef(true);  // iframe đang muted
+  const loadedRef     = useRef(false); // iframe đã load xong
+  const id            = ytId(url);
 
+  // Gửi lệnh YT Player API
   const cmd = useCallback((fn, args=[]) => {
     try {
       ifrRef.current?.contentWindow?.postMessage(
-        JSON.stringify({ event:"command", func:fn, args }), "*"
+        JSON.stringify({event:"command", func:fn, args}), "*"
       );
     } catch {}
   }, []);
 
-  // Bước 1: Resume AudioContext (unlock audio permission)
-  // Bước 2: unMute + playVideo YouTube
-  const doPlay = useCallback(async () => {
-    if (unlockedRef.current) return;
-    unlockedRef.current = true;
-
-    // Unlock Audio Context — key trick cho mobile
-    try {
-      if (!acRef.current) {
-        acRef.current = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (acRef.current.state === "suspended") {
-        await acRef.current.resume();
-      }
-      // Phát 1 oscillator silent 0.01s để "warm up" audio
-      const osc = acRef.current.createOscillator();
-      const gain = acRef.current.createGain();
-      gain.gain.value = 0.001; // gần như không nghe thấy
-      osc.connect(gain);
-      gain.connect(acRef.current.destination);
-      osc.start();
-      osc.stop(acRef.current.currentTime + 0.01);
-    } catch {}
-
-    // Giờ có thể unMute YouTube
-    setTimeout(() => {
-      cmd("unMute");
-      cmd("playVideo");
-      cmd("setVolume", [80]);
-      setOn(true);
-    }, 100);
+  // unMute phải gọi SYNCHRONOUSLY trong event handler
+  const tryUnmute = useCallback(() => {
+    if (!mutedRef.current) return; // đã unmute rồi
+    if (!loadedRef.current) return; // chưa load xong
+    // Gọi thẳng không qua setTimeout
+    cmd("unMute");
+    cmd("playVideo");
+    cmd("setVolume", [80]);
+    mutedRef.current = false;
+    setOn(true);
   }, [cmd]);
 
-  const onLoad = useCallback(() => {
-    setReady(true);
-    // Desktop: thử phát ngay không cần gesture
-    const t = setTimeout(doPlay, 800);
-    return () => clearTimeout(t);
-  }, [doPlay]);
+  const onIfrLoad = useCallback(() => {
+    loadedRef.current = true;
+    // Desktop: thử phát ngay (không cần gesture)
+    // Mobile: sẽ bị block nhưng không sao, chờ touch
+    cmd("playVideo");
+    // Thử unmute sau 500ms — hoạt động trên desktop
+    setTimeout(() => {
+      if (mutedRef.current) {
+        cmd("unMute");
+        cmd("setVolume", [80]);
+        mutedRef.current = false;
+        setOn(true);
+      }
+    }, 500);
+  }, [cmd]);
 
-  // Unlock ngay khi có gesture đầu tiên
+  // Lắng nghe gesture — unMute SYNCHRONOUSLY
   useEffect(() => {
     if (!id) return;
-    const onGesture = () => {
-      if (!unlockedRef.current && ready) doPlay();
-      else if (!unlockedRef.current) {
-        // Đánh dấu để onLoad gọi doPlay
-        const t = setTimeout(() => { if (!unlockedRef.current) doPlay(); }, 500);
-      }
-    };
-    window.addEventListener("touchstart", onGesture, { once:true, passive:true });
-    window.addEventListener("click",      onGesture, { once:true });
+    // Hàm này PHẢI synchronous — không async, không setTimeout
+    const onTouch = () => { tryUnmute(); };
+    const onClick  = () => { tryUnmute(); };
+
+    window.addEventListener("touchstart", onTouch, { once:true, passive:true });
+    window.addEventListener("click",      onClick,  { once:true });
+
     return () => {
-      window.removeEventListener("touchstart", onGesture);
-      window.removeEventListener("click",      onGesture);
+      window.removeEventListener("touchstart", onTouch);
+      window.removeEventListener("click",      onClick);
     };
-  }, [id, ready, doPlay]);
+  }, [id, tryUnmute]);
 
   const toggle = useCallback((e) => {
     e.stopPropagation();
     if (!id) return;
-    if (!unlockedRef.current) { doPlay(); return; }
-    if (on) { cmd("mute");   setOn(false); }
-    else    { cmd("unMute"); cmd("playVideo"); setOn(true); }
-  }, [id, on, doPlay, cmd]);
+    if (mutedRef.current) {
+      // Lần đầu nhấn nút → unMute (gesture handler, synchronous)
+      cmd("unMute"); cmd("playVideo"); cmd("setVolume",[80]);
+      mutedRef.current = false; setOn(true);
+    } else if (on) {
+      cmd("mute"); setOn(false);
+    } else {
+      cmd("unMute"); cmd("playVideo"); setOn(true);
+    }
+  }, [id, on, cmd]);
 
-  // iframe mute=1 để load được, sẽ unMute sau gesture
+  // src: mute=1 + autoplay=1 để buffer sẵn
+  // playsinline=1 quan trọng cho iOS (không fullscreen)
   const ifrSrc = id
-    ? `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&enablejsapi=1&playsinline=1&rel=0&fs=0`
+    ? `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&enablejsapi=1&playsinline=1&rel=0`
     : "";
 
   return(<>
     {id && (
-      <iframe ref={ifrRef} src={ifrSrc} onLoad={onLoad}
+      <iframe ref={ifrRef} src={ifrSrc} onLoad={onIfrLoad}
         allow="autoplay; encrypted-media"
         title="bg-music"
         style={{position:"fixed",top:"-9999px",left:"-9999px",
@@ -1141,6 +1170,7 @@ export default function WeddingApp() {
   const [lbCur,setLbCur]=useState(-1);
   const [lbImgs,setLbImgs]=useState([]);
   const [copyMsg,setCopyMsg]=useState("");
+  const [showQR, setShowQR] = useState(false);
 
   const copyText=useCallback((text,label="✓ Đã copy!")=>{
     navigator.clipboard.writeText(text).catch(()=>{
@@ -1172,35 +1202,45 @@ export default function WeddingApp() {
     });
   },[]);
 
-  // ── AUTO SCROLL — không giật, mobile + desktop ──
+  // ── AUTO SCROLL ── mobile + desktop, không giật, không bị pause sớm
   useEffect(()=>{
     const pw = document.getElementById("pw");
     const sh = document.getElementById("sh");
     if (!pw) return;
 
-    const SPEED    = 0.6;   // px/frame
-    const RESUME   = 3000;  // ms resume sau khi user dừng
-    const START_MS = 2000;  // ms delay trước khi bắt đầu
+    const SPEED    = 0.55;
+    const RESUME   = 3500;
+    const START_MS = 2500; // Đủ thời gian để page load xong
 
-    let raf       = null;
-    let running   = false;
-    let paused    = false;
-    let resumeTmr = null;
+    let raf        = null;
+    let running    = false;
+    let paused     = false;
+    let resumeTmr  = null;
+    let listenReady = false; // Chỉ listen touch SAU khi scroll đã bắt đầu
 
-    // Mobile: #pw overflow:visible → scroll bằng window
-    const isMob = () => window.innerWidth <= 460;
-    const getTop = () => isMob() ? window.scrollY : pw.scrollTop;
-    const getMax = () => isMob()
+    // Mobile: #pw overflow:visible → dùng window.scrollBy
+    const mob    = () => window.innerWidth <= 460;
+    const getTop = () => mob() ? window.scrollY : pw.scrollTop;
+    const getMax = () => mob()
       ? document.documentElement.scrollHeight - window.innerHeight
       : pw.scrollHeight - pw.clientHeight;
     const doScroll = (n) => {
-      if (isMob()) window.scrollBy(0, n);
+      if (mob()) window.scrollBy(0, n);
       else pw.scrollTop += n;
+    };
+
+    const pause = (hide=false) => {
+      paused = true;
+      if (hide && sh) sh.classList.add("gone");
+      clearTimeout(resumeTmr);
+      resumeTmr = setTimeout(() => { paused = false; }, RESUME);
     };
 
     // ── RAF loop ──
     const loop = () => {
       if (!running) return;
+      // Ẩn scroll hint
+      if (sh && getTop() > 80) sh.classList.add("gone");
       if (!paused) {
         doScroll(SPEED);
         if (getTop() >= getMax() - 1) { running = false; return; }
@@ -1208,66 +1248,37 @@ export default function WeddingApp() {
       raf = requestAnimationFrame(loop);
     };
 
-    // ── Pause / Resume ──
-    const pause = (hideHint = false) => {
-      paused = true;
-      if (hideHint && sh) sh.classList.add("gone");
-      clearTimeout(resumeTmr);
-      resumeTmr = setTimeout(() => { paused = false; }, RESUME);
-    };
-    const hardPause = () => {   // dừng hẳn, ko tự resume
-      paused = true;
-      clearTimeout(resumeTmr);
-      if (sh) sh.classList.add("gone");
-    };
-    const hardResume = () => {  // resume thủ công
-      paused = false;
-    };
-
-    // ── DESKTOP: wheel ──
-    // Chỉ pause khi wheel, KHÔNG listen scroll event
-    // (scroll event sẽ fire cả khi code tự scroll → giật)
+    // ── Desktop: wheel ──
     const onWheel = () => pause(true);
 
-    // ── DESKTOP: keyboard (PageDown, Space, Arrow) ──
+    // ── Desktop: keyboard ──
     const onKey = (e) => {
-      const keys = ["ArrowDown","ArrowUp","PageDown","PageUp","Space"," "];
-      if (keys.includes(e.key)) pause(false);
+      if (["ArrowDown","ArrowUp","PageDown","PageUp"," "].includes(e.key)) pause(false);
     };
 
-    // ── MOBILE: touch ──
+    // ── Mobile: touch ──
+    // Chỉ listen SAU khi scroll đã chạy (listenReady=true)
+    // → không bị pause bởi gesture mở trang
     let ty0 = 0;
-    const onTS = (e) => { ty0 = e.touches[0].clientY; };
+    const onTS = (e) => {
+      if (!listenReady) return; // bỏ qua gesture trước khi scroll bắt đầu
+      ty0 = e.touches[0].clientY;
+    };
     const onTM = (e) => {
-      if (Math.abs(e.touches[0].clientY - ty0) > 8) pause(true);
-    };
-    const onTE = () => {
-      // Touch end → resume sau RESUME ms (đã set trong pause)
+      if (!listenReady) return;
+      if (Math.abs(e.touches[0].clientY - ty0) > 10) pause(true);
     };
 
-    // ── Scroll hint ──
-    // Chỉ ẩn hint bằng cách track scrollTop thủ công trong loop
-    // (không dùng scroll event)
-    let hintHidden = false;
-    const origLoop = loop;
-    const wrappedLoop = () => {
-      if (!hintHidden && sh && getTop() > 80) {
-        sh.classList.add("gone");
-        hintHidden = true;
-      }
-      origLoop(); // gọi loop thật
-    };
-
-    // Thêm listeners — KHÔNG có scroll event listener
-    pw.addEventListener("wheel",          onWheel, { passive: true });
-    window.addEventListener("keydown",    onKey,   { passive: true });
-    window.addEventListener("touchstart", onTS,    { passive: true });
-    window.addEventListener("touchmove",  onTM,    { passive: true });
-    window.addEventListener("touchend",   onTE,    { passive: true });
+    pw.addEventListener("wheel",          onWheel, { passive:true });
+    window.addEventListener("keydown",    onKey,   { passive:true });
+    window.addEventListener("touchstart", onTS,    { passive:true });
+    window.addEventListener("touchmove",  onTM,    { passive:true });
 
     const startTmr = setTimeout(() => {
       running = true;
-      raf = requestAnimationFrame(wrappedLoop);
+      // Bắt đầu nhận touch CHỈ sau khi scroll đã chạy 500ms
+      setTimeout(() => { listenReady = true; }, 500);
+      raf = requestAnimationFrame(loop);
     }, START_MS);
 
     return () => {
@@ -1275,11 +1286,10 @@ export default function WeddingApp() {
       clearTimeout(resumeTmr);
       cancelAnimationFrame(raf);
       running = false;
-      pw.removeEventListener("wheel",          onWheel);
-      window.removeEventListener("keydown",    onKey);
+      pw.removeEventListener("wheel",       onWheel);
+      window.removeEventListener("keydown", onKey);
       window.removeEventListener("touchstart", onTS);
       window.removeEventListener("touchmove",  onTM);
-      window.removeEventListener("touchend",   onTE);
     };
   },[]);
 
@@ -1561,42 +1571,61 @@ export default function WeddingApp() {
 
       </div>
 
-      {/* ═══ QR ═══ */}
+      {/* ═══ QR — ẩn đến khi nhấn hộp quà ═══ */}
       <div className="hdiv"/>
       <div style={{padding:"24px 14px 22px",textAlign:"center",position:"relative"}} className="sec-night">
         <Fl top={-60} left={-80} w={260} h={355} rot={12} op={0.14}/>
+
+        {/* Label */}
         <Rv dir="u" delay={0} style={{position:"relative",zIndex:1}}>
-          <p style={{color:"rgba(255,200,200,.82)",fontSize:"12px",fontFamily:"'Quicksand',sans-serif",fontWeight:600,marginBottom:"10px",letterSpacing:".22em",textTransform:"uppercase"}}>✦ Hộp quà yêu thương ✦</p>
+          <p style={{color:"rgba(255,200,200,.82)",fontSize:"12px",fontFamily:"'Quicksand',sans-serif",fontWeight:600,marginBottom:"12px",letterSpacing:".22em",textTransform:"uppercase"}}>✦ Hộp quà yêu thương ✦</p>
         </Rv>
-        <div style={{fontSize:"58px",marginBottom:"6px",animation:"wobble 2.8s ease-in-out infinite",display:"inline-block",position:"relative",zIndex:1}}>🎁</div>
-        <Rv dir="u" delay={0.1} style={{position:"relative",zIndex:1}}>
-          <p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",color:"rgba(255,210,210,.88)",fontSize:"22px",marginBottom:"16px",lineHeight:1.3}}>Mừng cưới qua QR</p>
-        </Rv>
-        <Rv dir="u" delay={0.15} style={{position:"relative",zIndex:1}}>
-          <div style={{display:"flex",gap:"12px",justifyContent:"center",flexWrap:"wrap"}}>
-            {[
-              {lbl:"Chú Rể",bank:d.qr_groom_bank,num:d.qr_groom_num,name:d.qr_groom_name,img:d.qr_groom_img},
-              {lbl:"Cô Dâu",bank:d.qr_bride_bank,num:d.qr_bride_num,name:d.qr_bride_name,img:d.qr_bride_img},
-            ].map(qr=>(
-              <div key={qr.lbl} style={{background:"rgba(255,255,255,.07)",border:"1px solid rgba(255,200,200,.22)",borderRadius:"10px",padding:"13px",textAlign:"center",flex:1,maxWidth:"185px"}}>
-                <p style={{color:"rgba(255,200,200,.72)",fontSize:"8.5px",letterSpacing:".25em",textTransform:"uppercase",marginBottom:"4px",fontFamily:"'Quicksand',sans-serif"}}>{qr.lbl}</p>
-                <p style={{color:"rgba(255,220,220,.88)",fontSize:"10px",fontFamily:"'Quicksand',sans-serif",marginBottom:"2px"}}>{qr.bank}</p>
-                <p style={{color:"#f0c0c0",fontSize:"12.5px",fontFamily:"'Cinzel',serif",marginBottom:"2px"}}>{qr.num}</p>
-                <p style={{color:"rgba(255,200,200,.6)",fontSize:"8.5px",fontFamily:"'Quicksand',sans-serif",marginBottom:"8px"}}>{qr.name}</p>
-                <div style={{width:"105px",height:"105px",margin:"0 auto",background:"#fff",borderRadius:"6px",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
-                  {gd(qr.img)?<img src={gd(qr.img)} alt="QR" style={{width:"100%",height:"100%",objectFit:"contain"}}/>:<span style={{fontSize:"8.5px",color:"#999"}}>QR Code</span>}
+
+        {/* Hộp quà — nút bấm */}
+        <div style={{position:"relative",zIndex:1,marginBottom:"6px"}}>
+          <button className="gift-btn" onClick={()=>setShowQR(true)}
+            title="Nhấn để mở hộp quà" aria-label="Mở hộp quà mừng cưới">
+            🎁
+          </button>
+          {!showQR&&(
+            <p style={{color:"rgba(255,180,180,.55)",fontSize:"10px",fontFamily:"'Quicksand',sans-serif",fontStyle:"italic",marginTop:"4px",animation:"floatY 2.5s ease-in-out infinite"}}>
+              Nhấn vào để mở ✨
+            </p>
+          )}
+        </div>
+
+        {/* QR cards — chỉ hiện sau khi nhấn */}
+        {showQR&&(
+          <div className="qr-revealed" style={{position:"relative",zIndex:1}}>
+            <p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",color:"rgba(255,210,210,.88)",fontSize:"20px",marginBottom:"14px",lineHeight:1.3}}>
+              💝 Cảm ơn sự quan tâm của bạn!
+            </p>
+            <div style={{display:"flex",gap:"12px",justifyContent:"center",flexWrap:"wrap"}}>
+              {[
+                {lbl:"Chú Rể",bank:d.qr_groom_bank,num:d.qr_groom_num,name:d.qr_groom_name,img:d.qr_groom_img},
+                {lbl:"Cô Dâu",bank:d.qr_bride_bank,num:d.qr_bride_num,name:d.qr_bride_name,img:d.qr_bride_img},
+              ].map(qr=>(
+                <div key={qr.lbl} style={{background:"rgba(255,255,255,.07)",border:"1px solid rgba(255,200,200,.22)",borderRadius:"10px",padding:"13px",textAlign:"center",flex:1,maxWidth:"185px"}}>
+                  <p style={{color:"rgba(255,200,200,.72)",fontSize:"8.5px",letterSpacing:".25em",textTransform:"uppercase",marginBottom:"4px",fontFamily:"'Quicksand',sans-serif"}}>{qr.lbl}</p>
+                  <p style={{color:"rgba(255,220,220,.88)",fontSize:"10px",fontFamily:"'Quicksand',sans-serif",marginBottom:"2px"}}>{qr.bank}</p>
+                  <p style={{color:"#f0c0c0",fontSize:"12.5px",fontFamily:"'Cinzel',serif",marginBottom:"2px"}}>{qr.num}</p>
+                  <p style={{color:"rgba(255,200,200,.6)",fontSize:"8.5px",fontFamily:"'Quicksand',sans-serif",marginBottom:"8px"}}>{qr.name}</p>
+                  <div style={{width:"105px",height:"105px",margin:"0 auto",background:"#fff",borderRadius:"6px",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+                    {gd(qr.img)
+                      ?<img src={gd(qr.img)} alt="QR" style={{width:"100%",height:"100%",objectFit:"contain"}}/>
+                      :<span style={{fontSize:"8.5px",color:"#999"}}>QR Code</span>}
+                  </div>
+                  <button onClick={()=>copyText(qr.num,`✓ Đã copy ${qr.num}`)}
+                    style={{marginTop:"8px",width:"100%",padding:"5px 0",background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,180,180,.25)",borderRadius:"5px",color:"rgba(255,195,195,.85)",fontSize:"9.5px",fontWeight:600,cursor:"pointer",fontFamily:"'Quicksand',sans-serif",letterSpacing:".08em",transition:"all .2s"}}
+                    onMouseEnter={e=>{e.target.style.background="rgba(255,255,255,.18)";}}
+                    onMouseLeave={e=>{e.target.style.background="rgba(255,255,255,.1)";}}>
+                    📋 Copy số TK
+                  </button>
                 </div>
-                {/* Nút copy số TK */}
-                <button onClick={()=>copyText(qr.num, `✓ Đã copy ${qr.num}`)}
-                  style={{marginTop:"8px",width:"100%",padding:"5px 0",background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,180,180,.25)",borderRadius:"5px",color:"rgba(255,195,195,.85)",fontSize:"9.5px",fontWeight:600,cursor:"pointer",fontFamily:"'Quicksand',sans-serif",letterSpacing:".08em",transition:"all .2s"}}
-                  onMouseEnter={e=>{e.target.style.background="rgba(255,255,255,.18)";e.target.style.borderColor="rgba(255,180,180,.5)";}}
-                  onMouseLeave={e=>{e.target.style.background="rgba(255,255,255,.1)";e.target.style.borderColor="rgba(255,180,180,.25)";}}>
-                  📋 Copy số TK
-                </button>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </Rv>
+        )}
       </div>
 
       <div style={{background:"#110404",padding:"14px",textAlign:"center"}}>
