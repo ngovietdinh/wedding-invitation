@@ -105,7 +105,7 @@ const GS = () => (
 @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Cinzel:wght@400;600&family=Dancing+Script:wght@500;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:3vh 0;font-family:'Quicksand',sans-serif;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;}
-#pw{width:451px;position:relative;background:#fff;border:1px solid #c0a0a0;box-shadow:0 0 50px rgba(80,10,10,.25);border-radius:3px;overflow:hidden;overflow-y:auto;max-height:94vh;padding-bottom:38px;}
+#pw{width:451px;position:relative;background:#fff;border:1px solid #c0a0a0;box-shadow:0 0 50px rgba(80,10,10,.25);border-radius:3px;overflow:hidden;overflow-y:auto;max-height:94vh;padding-bottom:calc(20vh + 46px);}
 #pw::-webkit-scrollbar{width:0;}
 #pw{-ms-overflow-style:none;scrollbar-width:none;}
 
@@ -171,24 +171,32 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 .rv-rb label{display:flex;align-items:center;gap:7px;font-size:12px;color:#444;font-family:'Quicksand',sans-serif;cursor:pointer;margin-bottom:6px;}
 .rv-rb input{accent-color:#631717;}
 
-/* ── RSVP Live Feed — Fixed bottom 20% màn hình ──
-   Chữ chạy từng hàng từ dưới lên, chồng lên nội dung,
-   pointer-events:none nên không ảnh hưởng gì phía sau */
+/* ── RSVP Live Ticker + Comment Input — Fixed bottom ──
+   pointer-events:none trên toàn bộ, EXCEPT ô input (pointer-events:auto)
+   → chữ cuộn không block click, chỉ input nhận tương tác */
 #live-ticker{
   position:fixed;
   bottom:0; left:50%;
   transform:translateX(-50%);
   width:451px;
-  height:20vh;          /* 20% chiều cao màn hình */
-  min-height:130px;
-  max-height:200px;
   z-index:8888;
-  pointer-events:none;  /* xuyên qua click — không block tương tác */
+  pointer-events:none;
   opacity:0;
   animation:tkFadeIn .8s ease 1s forwards;
+  display:flex;
+  flex-direction:column;
 }
 @media(max-width:460px){#live-ticker{width:100vw;}}
 @keyframes tkFadeIn{to{opacity:1;}}
+
+/* Phần cuộn chữ — chiếm ~20vh */
+.tk-scroll-area{
+  height:20vh;
+  min-height:110px;
+  max-height:180px;
+  position:relative;
+  overflow:hidden;
+}
 
 /* Nền gradient từ trong suốt → đậm dần xuống dưới */
 .tk-bg{
@@ -196,17 +204,17 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
   background:linear-gradient(
     180deg,
     transparent 0%,
-    rgba(10,2,2,.55) 35%,
-    rgba(15,3,3,.82) 65%,
-    rgba(20,4,4,.95) 100%
+    rgba(10,2,2,.6) 35%,
+    rgba(15,3,3,.85) 65%,
+    rgba(20,4,4,.96) 100%
   );
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
 }
 /* Đường viền trên */
 .tk-border{
   position:absolute;top:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(180,40,40,.4),transparent);
+  background:linear-gradient(90deg,transparent,rgba(180,40,40,.45),transparent);
 }
 
 /* Header LIVE */
@@ -238,6 +246,7 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
   top:22px; left:0; right:0; bottom:0;
   overflow:hidden;
   z-index:2;
+  /* Scroll area chiếm phần còn lại bên trong tk-scroll-area */
 }
 /* Inner — dịch chuyển bằng JS transform */
 .tk-inner{
@@ -286,6 +295,60 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
   background:linear-gradient(180deg,rgba(15,3,3,.9),transparent);
   z-index:3;pointer-events:none;
 }
+
+/* Input row gửi comment — nằm DƯỚI phần cuộn trong ticker */
+.tk-input-row{
+  pointer-events:auto;   /* CHỈ phần này nhận tương tác */
+  display:flex;align-items:center;gap:6px;
+  padding:5px 8px 6px;
+  background:rgba(12,3,3,.96);
+  border-top:1px solid rgba(140,30,30,.3);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+.tk-inp{
+  flex:1;min-width:0;
+  padding:5px 10px;
+  border:1px solid rgba(140,40,40,.4);
+  border-radius:16px;
+  background:rgba(255,255,255,.08);
+  color:rgba(255,210,210,.95);
+  font-size:11px;
+  font-family:'Quicksand',sans-serif;
+  outline:none;
+  transition:border-color .2s, background .2s;
+}
+.tk-inp:focus{
+  border-color:rgba(200,60,60,.7);
+  background:rgba(255,255,255,.12);
+}
+.tk-inp::placeholder{color:rgba(200,150,150,.45);}
+.tk-inp-name{
+  flex:0 0 80px;
+  padding:5px 9px;
+  border:1px solid rgba(140,40,40,.35);
+  border-radius:16px;
+  background:rgba(255,255,255,.07);
+  color:rgba(255,200,200,.9);
+  font-size:11px;
+  font-family:'Quicksand',sans-serif;
+  outline:none;
+  transition:border-color .2s;
+}
+.tk-inp-name:focus{border-color:rgba(200,60,60,.7);}
+.tk-inp-name::placeholder{color:rgba(200,150,150,.4);}
+.tk-send{
+  flex-shrink:0;
+  width:30px;height:30px;border-radius:50%;
+  background:linear-gradient(135deg,#631717,#9a2a2a);
+  border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;
+  transition:opacity .2s, transform .15s;
+  pointer-events:auto;
+}
+.tk-send:hover{opacity:.85;transform:scale(1.08);}
+.tk-send:disabled{opacity:.4;cursor:not-allowed;transform:none;}
 
 /* ── Comment Box kiểu livestream ── */
 .cmtbox{
@@ -457,15 +520,18 @@ function Particles() {
   );
 }
 
-// ── Music player — auto-play mobile (dùng muted iframe + gesture unlock) ──
+// ── Music — Auto-play với kỹ thuật AudioContext unlock ──
+// Mẹo: Tạo AudioContext + resume() trong gesture handler đầu tiên
+// Sau khi resume() thành công → browser cho phép play bất kỳ audio
+// Đây là cách hợp lệ duy nhất để auto-play trên mobile Safari/Chrome
 function Music({url}) {
   const [on,setOn]       = useState(false);
   const [ready,setReady] = useState(false);
   const ifrRef           = useRef(null);
-  const startedRef       = useRef(false);
+  const unlockedRef      = useRef(false);
+  const acRef            = useRef(null);
   const id               = ytId(url);
 
-  // Gửi lệnh tới YouTube player qua postMessage
   const cmd = useCallback((fn, args=[]) => {
     try {
       ifrRef.current?.contentWindow?.postMessage(
@@ -474,80 +540,84 @@ function Music({url}) {
     } catch {}
   }, []);
 
-  // Hàm phát thật sự (cần gesture trên mobile)
-  const doPlay = useCallback(() => {
-    cmd("unMute");
-    cmd("playVideo");
-    cmd("setVolume", [85]);
-    setOn(true);
+  // Bước 1: Resume AudioContext (unlock audio permission)
+  // Bước 2: unMute + playVideo YouTube
+  const doPlay = useCallback(async () => {
+    if (unlockedRef.current) return;
+    unlockedRef.current = true;
+
+    // Unlock Audio Context — key trick cho mobile
+    try {
+      if (!acRef.current) {
+        acRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (acRef.current.state === "suspended") {
+        await acRef.current.resume();
+      }
+      // Phát 1 oscillator silent 0.01s để "warm up" audio
+      const osc = acRef.current.createOscillator();
+      const gain = acRef.current.createGain();
+      gain.gain.value = 0.001; // gần như không nghe thấy
+      osc.connect(gain);
+      gain.connect(acRef.current.destination);
+      osc.start();
+      osc.stop(acRef.current.currentTime + 0.01);
+    } catch {}
+
+    // Giờ có thể unMute YouTube
+    setTimeout(() => {
+      cmd("unMute");
+      cmd("playVideo");
+      cmd("setVolume", [80]);
+      setOn(true);
+    }, 100);
   }, [cmd]);
 
-  // Khi iframe load xong → đánh dấu ready
   const onLoad = useCallback(() => {
     setReady(true);
-    // Desktop: thử phát ngay (không cần gesture)
-    if (startedRef.current) {
-      setTimeout(doPlay, 500);
-    }
+    // Desktop: thử phát ngay không cần gesture
+    const t = setTimeout(doPlay, 800);
+    return () => clearTimeout(t);
   }, [doPlay]);
 
-  // Lắng nghe gesture đầu tiên → phát nhạc
+  // Unlock ngay khi có gesture đầu tiên
   useEffect(() => {
     if (!id) return;
-
-    const unlock = () => {
-      if (startedRef.current) return;
-      startedRef.current = true;
-      if (ready) doPlay();
-      else {
-        // Chưa load xong → đợi onLoad gọi doPlay
-        // (onLoad sẽ check startedRef.current)
+    const onGesture = () => {
+      if (!unlockedRef.current && ready) doPlay();
+      else if (!unlockedRef.current) {
+        // Đánh dấu để onLoad gọi doPlay
+        const t = setTimeout(() => { if (!unlockedRef.current) doPlay(); }, 500);
       }
     };
-
-    // Gesture events — mobile cần touchstart, desktop cần click
-    window.addEventListener("touchstart", unlock, { once: true, passive: true });
-    window.addEventListener("click",      unlock, { once: true });
-
-    // Desktop fallback: thử sau 1.2s (không cần gesture)
-    const t = setTimeout(() => {
-      if (!startedRef.current && ready) {
-        startedRef.current = true;
-        doPlay();
-      }
-    }, 1200);
-
+    window.addEventListener("touchstart", onGesture, { once:true, passive:true });
+    window.addEventListener("click",      onGesture, { once:true });
     return () => {
-      window.removeEventListener("touchstart", unlock);
-      window.removeEventListener("click",      unlock);
-      clearTimeout(t);
+      window.removeEventListener("touchstart", onGesture);
+      window.removeEventListener("click",      onGesture);
     };
   }, [id, ready, doPlay]);
 
   const toggle = useCallback((e) => {
     e.stopPropagation();
     if (!id) return;
-    if (!startedRef.current) {
-      startedRef.current = true;
-      if (ready) doPlay();
-      return;
-    }
-    if (on) { cmd("mute"); setOn(false); }
+    if (!unlockedRef.current) { doPlay(); return; }
+    if (on) { cmd("mute");   setOn(false); }
     else    { cmd("unMute"); cmd("playVideo"); setOn(true); }
-  }, [id, on, ready, doPlay, cmd]);
+  }, [id, on, doPlay, cmd]);
 
-  // iframe: load với mute=1 để vượt autoplay policy
-  // playsinline=1 quan trọng cho iOS
+  // iframe mute=1 để load được, sẽ unMute sau gesture
   const ifrSrc = id
-    ? `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&enablejsapi=1&playsinline=1&rel=0`
+    ? `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&enablejsapi=1&playsinline=1&rel=0&fs=0`
     : "";
 
   return(<>
     {id && (
       <iframe ref={ifrRef} src={ifrSrc} onLoad={onLoad}
-        allow="autoplay; encrypted-media; picture-in-picture"
-        allowFullScreen={false} title="music"
-        style={{position:"fixed",top:"-9999px",left:"-9999px",width:"1px",height:"1px",opacity:0,pointerEvents:"none",border:"none"}}/>
+        allow="autoplay; encrypted-media"
+        title="bg-music"
+        style={{position:"fixed",top:"-9999px",left:"-9999px",
+          width:"1px",height:"1px",opacity:0,pointerEvents:"none",border:"none"}}/>
     )}
     <button id="aud" className={on?"on":""} onClick={toggle} aria-label={on?"Tắt nhạc":"Bật nhạc"}>
       {on?(
@@ -809,35 +879,91 @@ function RSVPFeed() {
   // Nhân đôi để loop liền mạch (khi cuộn hết nửa đầu = quay lại đúng nửa sau)
   const belt = [...items, ...items];
 
+  const [cmtName, setCmtName] = useState("");
+  const [cmtText, setCmtText] = useState("");
+  const [sending,  setSending] = useState(false);
+
+  const sendComment = async () => {
+    const n = cmtName.trim();
+    const t = cmtText.trim();
+    if (!n || !t) return;
+    setSending(true);
+    // Optimistic: thêm vào items ngay
+    const local = {
+      id: `l${Date.now()}`, name: n,
+      attending: true, guests_count: 1, message: t,
+      created_at: new Date().toISOString()
+    };
+    setItems(prev => [...prev, local]);
+    setCmtText("");
+    if (sb) {
+      await sb.from("rsvp_responses").insert({
+        name: n, attending: true, guests_count: 1, message: t
+      }).catch(() => {});
+    }
+    setSending(false);
+  };
+
   return (
     <div id="live-ticker">
-      <div className="tk-bg"/>
-      <div className="tk-border"/>
-      <div className="tk-fade"/>
+      {/* ── Phần cuộn chữ ── */}
+      <div className="tk-scroll-area">
+        <div className="tk-bg"/>
+        <div className="tk-border"/>
+        <div className="tk-fade"/>
 
-      {/* Header LIVE */}
-      <div className="tk-header">
-        <div className="tk-dot"/>
-        <span className="tk-lbl">LIVE · Xác nhận tham dự</span>
-        <span className="tk-count">{items.length} người</span>
+        {/* Header LIVE */}
+        <div className="tk-header">
+          <div className="tk-dot"/>
+          <span className="tk-lbl">LIVE · Xác nhận tham dự</span>
+          <span className="tk-count">{items.length} người</span>
+        </div>
+
+        {/* Vùng cuộn chữ */}
+        <div className="tk-scroll">
+          <div ref={innerRef} className="tk-inner">
+            {belt.map((r, i) => (
+              <div key={`${r.id||i}-${i}`} className="tk-row">
+                <div className="tk-av">{getInit(r.name)}</div>
+                <span className="tk-name">{r.name}</span>
+                <span className={`tk-badge ${r.attending ? "yes" : "no"}`}>
+                  {r.attending ? `♥ ${r.guests_count || 1} người` : "✗ Vắng"}
+                </span>
+                {r.message && (
+                  <span className="tk-msg">— {r.message}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Vùng cuộn */}
-      <div className="tk-scroll">
-        <div ref={innerRef} className="tk-inner">
-          {belt.map((r, i) => (
-            <div key={`${r.id||i}-${i}`} className="tk-row">
-              <div className="tk-av">{getInit(r.name)}</div>
-              <span className="tk-name">{r.name}</span>
-              <span className={`tk-badge ${r.attending ? "yes" : "no"}`}>
-                {r.attending ? `♥ ${r.guests_count || 1} người` : "✗ Vắng"}
-              </span>
-              {r.message && (
-                <span className="tk-msg">— {r.message}</span>
-              )}
-            </div>
-          ))}
-        </div>
+      {/* ── Input gửi comment — pointer-events:auto ── */}
+      <div className="tk-input-row">
+        <input
+          className="tk-inp-name"
+          value={cmtName}
+          placeholder="Tên bạn..."
+          maxLength={25}
+          onChange={e => setCmtName(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && sendComment()}
+        />
+        <input
+          className="tk-inp"
+          value={cmtText}
+          placeholder="Gửi lời chúc... ♥"
+          maxLength={120}
+          onChange={e => setCmtText(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && sendComment()}
+        />
+        <button
+          className="tk-send"
+          onClick={sendComment}
+          disabled={sending || !cmtName.trim() || !cmtText.trim()}
+          title="Gửi"
+        >
+          {sending ? "⏳" : "➤"}
+        </button>
       </div>
     </div>
   );
@@ -1400,10 +1526,6 @@ export default function WeddingApp() {
           </div>
         </Rv>
 
-        {/* Comment box — bên dưới form */}
-        <Rv dir="u" delay={0.15} style={{marginTop:"14px"}}>
-          <CommentBox/>
-        </Rv>
       </div>
 
       {/* ═══ QR ═══ */}
