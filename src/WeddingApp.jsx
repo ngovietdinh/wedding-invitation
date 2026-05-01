@@ -850,6 +850,9 @@ function Music({url}) {
     ? `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&enablejsapi=1&playsinline=1&rel=0`
     : "";
 
+  // Expose tryUnmute để WeddingApp gọi khi mở thiệp
+  Music.triggerPlay = tryUnmute;
+
   return(<>
     {id && (
       <iframe ref={ifrRef} src={ifrSrc} onLoad={onIfrLoad}
@@ -1486,10 +1489,15 @@ export default function WeddingApp() {
   // Shorthands
   const P=(props)=><Photo {...props}/>;
 
-  // Hàm mở thiệp — gọi khi nhấn nút mở
+  // Hàm mở thiệp — trigger nhạc ĐỒNG THỜI trong cùng event
+  // Mobile browser CHỈ cho phép audio nếu gọi trong sync gesture handler
   const handleOpen = useCallback(() => {
+    // 1. Gọi unMute ngay — vẫn đang trong click/touch event handler
+    if (typeof Music.triggerPlay === "function") {
+      Music.triggerPlay();
+    }
+    // 2. Mở thiệp
     setOpened(true);
-    // Auto-scroll bắt đầu sau khi thiệp mở
   }, []);
 
   return(<>
@@ -1854,8 +1862,10 @@ function EnvelopeScreen({ d, onOpen }) {
   ];
 
   const handleOpen = () => {
+    // Gọi onOpen NGAY (để trigger nhạc trong gesture context)
+    // Sau đó mới chạy animation đóng
+    onOpen();  // ← music trigger xảy ra ở đây, trong sync click handler
     setClosing(true);
-    setTimeout(onOpen, 650);
   };
 
   return (
