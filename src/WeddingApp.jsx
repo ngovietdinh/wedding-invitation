@@ -144,6 +144,172 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 @keyframes pGlow{0%,100%{box-shadow:0 0 8px rgba(120,30,30,.5);}50%{box-shadow:0 0 22px rgba(120,30,30,.88);}}
 
 /* ── Particles ── */
+/* ══ ENVELOPE SCREEN — Bìa thiệp trước khi mở ══ */
+#envelope-screen{
+  position:fixed;inset:0;
+  z-index:99998;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(145deg,#2d0a12 0%,#4a0e1e 45%,#3a0e18 100%);
+  /* Texture nhẹ */
+  overflow:hidden;
+}
+#envelope-screen::before{
+  content:'';position:absolute;inset:0;
+  background-image:
+    repeating-linear-gradient(45deg,rgba(255,200,180,.03) 0,rgba(255,200,180,.03) 1px,transparent 0,transparent 50%),
+    repeating-linear-gradient(-45deg,rgba(255,200,180,.03) 0,rgba(255,200,180,.03) 1px,transparent 0,transparent 50%);
+  background-size:24px 24px;
+}
+.env-card{
+  width:min(420px,90vw);
+  position:relative;
+  display:flex;flex-direction:column;align-items:center;
+  padding:0;
+}
+/* Khung thiệp */
+.env-frame{
+  width:100%;
+  background:linear-gradient(160deg,#fdf8f0 0%,#fef5ed 60%,#fdf0e8 100%);
+  border-radius:4px;
+  box-shadow:
+    0 0 0 1px rgba(180,80,60,.25),
+    0 0 0 6px rgba(140,40,30,.12),
+    0 8px 40px rgba(0,0,0,.45),
+    0 2px 8px rgba(0,0,0,.3);
+  padding:32px 28px 28px;
+  text-align:center;
+  position:relative;
+  overflow:hidden;
+}
+/* Viền hoa văn */
+.env-frame::before,.env-frame::after{
+  content:'';position:absolute;
+  border:1.5px solid rgba(160,60,40,.2);
+  border-radius:3px;
+}
+.env-frame::before{inset:10px;}
+.env-frame::after{inset:14px;border-color:rgba(160,60,40,.1);}
+
+/* Chữ Hỉ */
+.env-hi{
+  font-size:56px;line-height:1;
+  margin-bottom:4px;
+  background:linear-gradient(135deg,#b8341a,#d4541e,#e8803c,#d4541e,#b8341a);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+  filter:drop-shadow(0 1px 2px rgba(160,40,20,.3));
+  animation:envHiGlow 3s ease-in-out infinite;
+}
+@keyframes envHiGlow{
+  0%,100%{filter:drop-shadow(0 1px 2px rgba(160,40,20,.3));}
+  50%{filter:drop-shadow(0 1px 8px rgba(200,80,30,.5));}
+}
+
+/* Dải hoa văn */
+.env-divider{
+  width:120px;height:1.5px;margin:10px auto;
+  background:linear-gradient(90deg,transparent,rgba(180,80,40,.45),transparent);
+  position:relative;
+}
+.env-divider::after{
+  content:'❋';position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  font-size:12px;color:rgba(180,80,40,.6);
+  background:linear-gradient(160deg,#fdf8f0,#fef5ed);
+  padding:0 6px;
+}
+
+/* Kính mời */
+.env-kinhmoi{
+  font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;
+  color:rgba(100,30,20,.55);font-family:'Cinzel',serif;
+  margin-bottom:10px;
+}
+/* Tên người mời */
+.env-to{
+  font-size:17px;
+  font-family:'Dancing Script',cursive;font-weight:700;
+  color:#7a1a2a;margin-bottom:2px;
+  text-shadow:0 1px 3px rgba(100,20,30,.15);
+}
+/* Tham dự */
+.env-attend{
+  font-size:10.5px;color:rgba(100,30,20,.5);
+  font-family:'Quicksand',sans-serif;
+  letter-spacing:.1em;margin-bottom:14px;
+}
+/* Tên cô dâu chú rể */
+.env-couple{
+  font-family:'Cormorant Garamond',serif;font-style:italic;
+  font-size:13px;color:rgba(100,30,20,.55);
+  margin-bottom:4px;letter-spacing:.06em;
+}
+.env-names{
+  font-family:'Dancing Script',cursive;font-weight:700;
+  font-size:32px;color:#631717;line-height:1.15;
+  text-shadow:0 1px 4px rgba(100,20,30,.18);
+  margin-bottom:2px;
+}
+.env-amp{
+  font-family:'Cormorant Garamond',serif;font-style:italic;
+  font-size:18px;color:rgba(180,60,40,.5);margin:0 8px;
+}
+.env-date{
+  font-family:'Cinzel',serif;font-size:12px;
+  color:rgba(120,40,30,.6);letter-spacing:.18em;
+  margin-top:8px;margin-bottom:18px;
+}
+/* Nút mở thiệp */
+.env-open-btn{
+  position:relative;z-index:1;
+  width:64px;height:64px;
+  background:linear-gradient(135deg,#8a1a28,#631717);
+  border-radius:50%;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:
+    0 4px 18px rgba(99,23,23,.55),
+    0 0 0 6px rgba(99,23,23,.15),
+    0 0 0 12px rgba(99,23,23,.07);
+  transition:transform .2s, box-shadow .2s;
+  animation:envBtnPulse 2.5s ease-in-out infinite;
+  margin-top:-2px;
+}
+.env-open-btn:hover{
+  transform:scale(1.08);
+  box-shadow:0 6px 24px rgba(99,23,23,.65),0 0 0 8px rgba(99,23,23,.18);
+}
+.env-open-btn:active{transform:scale(.94);}
+@keyframes envBtnPulse{
+  0%,100%{box-shadow:0 4px 18px rgba(99,23,23,.55),0 0 0 6px rgba(99,23,23,.15),0 0 0 12px rgba(99,23,23,.07);}
+  50%{box-shadow:0 4px 24px rgba(99,23,23,.7),0 0 0 10px rgba(99,23,23,.2),0 0 0 20px rgba(99,23,23,.05);}
+}
+.env-open-icon{font-size:26px;line-height:1;}
+.env-hint{
+  font-size:10px;color:rgba(255,180,160,.5);
+  font-family:'Quicksand',sans-serif;
+  margin-top:10px;letter-spacing:.12em;
+  animation:floatY 2.5s ease-in-out infinite;
+}
+/* Particles nền envelope */
+.env-ptc{
+  position:absolute;pointer-events:none;
+  animation:envPtcFall linear infinite;
+  opacity:.35;
+}
+@keyframes envPtcFall{
+  0%{transform:translateY(-60px) rotate(0deg);opacity:.4;}
+  100%{transform:translateY(105vh) rotate(360deg);opacity:0;}
+}
+/* Exit animation */
+#envelope-screen.closing{
+  animation:envClose .7s cubic-bezier(.4,0,.2,1) forwards;
+}
+@keyframes envClose{
+  0%{opacity:1;transform:scale(1);}
+  40%{opacity:1;transform:scale(1.04);}
+  100%{opacity:0;transform:scale(.92) translateY(-20px);}
+}
+
 /* Hoa/tim rơi — pure CSS, không JS, không giật */
 .ptc-wrap{position:fixed;inset:0;pointer-events:none;z-index:9997;overflow:hidden;}
 .ptc{
@@ -204,9 +370,9 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
   background:linear-gradient(
     180deg,
     transparent 0%,
-    rgba(10,2,2,.6) 35%,
-    rgba(15,3,3,.85) 65%,
-    rgba(20,4,4,.96) 100%
+    rgba(45,8,20,.7) 35%,
+    rgba(50,10,22,.88) 65%,
+    rgba(55,10,24,.97) 100%
   );
   backdrop-filter:blur(8px);
   -webkit-backdrop-filter:blur(8px);
@@ -276,13 +442,13 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 .tk-name{
   font-size:11px;font-weight:700;flex-shrink:0;
   color:rgba(255,200,200,.95);font-family:'Quicksand',sans-serif;
-  text-shadow:0 1px 3px rgba(80, 49, 49, 0.37);
+  text-shadow:0 1px 3px rgba(0,0,0,.7);
 }
 .tk-badge{
   font-size:8px;padding:1px 5px;border-radius:99px;font-weight:600;flex-shrink:0;
 }
 .tk-badge.yes{background:rgba(140,20,20,.7);color:rgba(255,185,185,.95);}
-.tk-badge.no {background:rgba(104, 70, 70, 0.55);color:rgba(185,185,185,.75);}
+.tk-badge.no {background:rgba(50,50,50,.55);color:rgba(185,185,185,.75);}
 .tk-msg{
   font-size:10px;color:rgba(255,175,175,.78);
   font-family:'Quicksand',sans-serif;font-style:italic;
@@ -292,7 +458,7 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 /* Fade top của scroll area */
 .tk-fade{
   position:absolute;top:22px;left:0;right:0;height:30px;
-  background:linear-gradient(180deg,rgba(49, 12, 12, 0.9),transparent);
+  background:linear-gradient(180deg,rgba(50,10,22,.92),transparent);
   z-index:3;pointer-events:none;
 }
 
@@ -301,7 +467,7 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
   pointer-events:auto;   /* CHỈ phần này nhận tương tác */
   display:flex;align-items:center;gap:6px;
   padding:5px 8px 6px;
-  background:rgba(65, 18, 18, 0.96);
+  background:rgba(45,8,20,.97);
   border-top:1px solid rgba(140,30,30,.3);
   backdrop-filter:blur(10px);
   -webkit-backdrop-filter:blur(10px);
@@ -435,7 +601,7 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 .cmt-send-btn:disabled{opacity:.45;cursor:not-allowed;}
 
 /* ── Lightbox ── */
-#lb{display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.96);align-items:center;justify-content:center;}
+#lb{display:none;position:fixed;inset:0;z-index:99999;background:rgba(25,5,14,.97);align-items:center;justify-content:center;}
 #lb.open{display:flex;}
 #lb img{max-width:92vw;max-height:88vh;object-fit:contain;border-radius:8px;}
 #lb-cl{position:absolute;top:.8rem;right:.8rem;background:transparent;border:1px solid rgba(255,255,255,.35);color:rgba(255,255,255,.7);font-size:.58rem;letter-spacing:.28em;text-transform:uppercase;padding:.35rem .8rem;cursor:pointer;font-family:'Quicksand',sans-serif;}
@@ -466,7 +632,7 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 .gal-cell:hover img{transform:scale(1.06);}
 .gal-cell-cap{
   position:absolute;bottom:0;left:0;right:0;
-  background:linear-gradient(transparent,rgba(0,0,0,.6));
+  background:linear-gradient(transparent,rgba(55,10,24,.78));
   padding:16px 8px 6px;
   font-size:10px;color:rgba(255,255,255,.85);
   font-family:'Quicksand',sans-serif;font-style:italic;
@@ -495,7 +661,7 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 .copy-toast{
   position:fixed;bottom:calc(20vh + 55px);left:50%;
   transform:translateX(-50%);
-  background:rgba(20,5,5,.9);
+  background:rgba(55,10,24,.92);
   color:rgba(255,200,200,.95);
   font-family:'Quicksand',sans-serif;font-size:12px;font-weight:600;
   padding:7px 18px;border-radius:99px;
@@ -516,33 +682,17 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 .pf.round-none::after{display:none;}
 
 /* ── Misc ── */
-.on-photo{
-  text-shadow:
-    0 1px 3px rgba(90,21,21,.7),
-    0 0 10px rgba(90,21,21,.55),
-    0 2px 8px rgba(58,13,13,.6);
-}
+.on-photo{text-shadow:0 1px 4px rgba(0,0,0,.95),0 0 14px rgba(0,0,0,.8),0 2px 10px rgba(0,0,0,.9);}
 .hdiv{height:4px;background:linear-gradient(90deg,transparent,#631717,transparent);}
-.sec-dark{
-  background: linear-gradient(145deg,#3a0d0d,#6b1b1b);
-}
-
-.sec-dark2{
-  background: linear-gradient(145deg,#4a1010,#8a2424);
-}
-
-.sec-mid{
-  background: linear-gradient(145deg,#7a1f1f,#3a0d0d);
-}
-
-.sec-night{
-  background: linear-gradient(145deg,#2a0808,#4a1010);
-}
+.sec-dark{background:linear-gradient(145deg,#3a0e18,#3d1010);}
+.sec-dark2{background:linear-gradient(145deg,#2a0808,#631717);}
+.sec-mid{background:linear-gradient(145deg,#7a1a2a,#3a0e18);}
+.sec-night{background:linear-gradient(145deg,#2d0a12,#3d1020);}
 
 @media(max-width:460px){
   body{
     padding:0;
-    background:#200a0a;
+    background:#3a0e18;
     /* Mobile: block layout để body scroll */
     display:block;
     /* Đủ không gian cho ticker + input ở đáy */
@@ -808,7 +958,7 @@ function Cal({dateStr="26.04.2026"}) {
   return(
     <div>
       {/* Banner tháng */}
-      <div style={{background:"linear-gradient(90deg,#3d0e0e,#631717,#3d0e0e)",padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+      <div style={{background:"linear-gradient(90deg,#4a0e1e,#7a1a2a,#4a0e1e)",padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <p style={{fontSize:"21px",fontFamily:"'Cinzel',serif",fontWeight:600,color:"#fde8e8",letterSpacing:".07em"}}>{MONTHS[month-1]}</p>
         <p style={{fontSize:"12px",fontFamily:"'Quicksand',sans-serif",fontWeight:600,letterSpacing:".2em",color:"rgba(253,232,232,.72)"}}>{year}</p>
       </div>
@@ -1172,7 +1322,7 @@ function Fl({top,left,w,h,rot,op=0.2}) {
 
 function QB({text,fontSize=17,style={}}) {
   return(
-    <div style={{background:"rgba(0,0,0,.55)",backdropFilter:"blur(3px)",borderRadius:"6px",padding:"10px 14px",...style}}>
+    <div style={{background:"rgba(45,8,20,.72)",backdropFilter:"blur(3px)",borderRadius:"6px",padding:"10px 14px",...style}}>
       <p className="on-photo" style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",color:"rgba(255,230,230,.97)",textAlign:"center",lineHeight:1.65,fontSize,whiteSpace:"pre-line"}}>{text}</p>
     </div>
   );
@@ -1187,6 +1337,7 @@ export default function WeddingApp() {
   const [lbImgs,setLbImgs]=useState([]);
   const [copyMsg,setCopyMsg]=useState("");
   const [showQR, setShowQR] = useState(false);
+  const [opened, setOpened] = useState(false);  // false = đang hiện bìa thiệp
 
   const copyText=useCallback((text,label="✓ Đã copy!")=>{
     navigator.clipboard.writeText(text).catch(()=>{
@@ -1290,12 +1441,24 @@ export default function WeddingApp() {
     window.addEventListener("touchstart", onTS,    { passive:true });
     window.addEventListener("touchmove",  onTM,    { passive:true });
 
+    // Chỉ scroll khi thiệp đã được mở (opened=true)
+    // Kiểm tra DOM: #envelope-screen không còn tồn tại
+    const waitOpen = (cb) => {
+      const check = () => {
+        const env = document.getElementById("envelope-screen");
+        if (!env) cb();
+        else setTimeout(check, 200);
+      };
+      setTimeout(check, START_MS);
+    };
+
     const startTmr = setTimeout(() => {
-      running = true;
-      // Bắt đầu nhận touch CHỈ sau khi scroll đã chạy 500ms
-      setTimeout(() => { listenReady = true; }, 500);
-      raf = requestAnimationFrame(loop);
-    }, START_MS);
+      waitOpen(() => {
+        running = true;
+        setTimeout(() => { listenReady = true; }, 500);
+        raf = requestAnimationFrame(loop);
+      });
+    }, 0);
 
     return () => {
       clearTimeout(startTmr);
@@ -1323,14 +1486,24 @@ export default function WeddingApp() {
   // Shorthands
   const P=(props)=><Photo {...props}/>;
 
+  // Hàm mở thiệp — gọi khi nhấn nút mở
+  const handleOpen = useCallback(() => {
+    setOpened(true);
+    // Auto-scroll bắt đầu sau khi thiệp mở
+  }, []);
+
   return(<>
     <GS/><Particles/>
     <Music url={d.music_youtube}/>
-    <div id="sh"><span className="sh-t">Kéo xuống</span><div className="sh-m"/></div>
-    <div id="pw">
+
+    {/* Bìa thiệp — hiện trước khi mở */}
+    {!opened && <EnvelopeScreen d={d} onOpen={handleOpen}/>}
+
+    <div id="sh" className={opened?"":"gone"}><span className="sh-t">Kéo xuống</span><div className="sh-m"/></div>
+    <div id="pw" style={!opened?{pointerEvents:"none",userSelect:"none"}:{}}>
 
       {/* ═══ COVER ═══ */}
-      <div style={{position:"relative",width:"100%",height:"490px",overflow:"hidden",background:"linear-gradient(148deg,#3d0e0e 0%,#631717 50%,#2a0808 100%)"}}>
+      <div style={{position:"relative",width:"100%",height:"490px",overflow:"hidden",background:"linear-gradient(148deg,#4a0e1e 0%,#6d1a28 50%,#3a0e18 100%)"}}>
         <div style={{position:"absolute",inset:0,opacity:.05,backgroundImage:"repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%)",backgroundSize:"15px 15px"}}/>
         <Fl top={-30} left={-90} w={280} h={370} rot={14} op={0.2}/>
         <Rv dir="u" delay={0} style={{position:"absolute",bottom:0,left:16,width:"262px",height:"440px",zIndex:1}}>
@@ -1461,7 +1634,7 @@ export default function WeddingApp() {
         <div style={{display:"grid",gridTemplateColumns:"1fr auto"}}>
           <div/>
           <Rv dir="l" delay={0.15}>
-            <div style={{background:"linear-gradient(180deg,#3d0e0e,#631717)",width:"58px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"space-around",padding:"10px 4px",boxShadow:"-2px 0 10px rgba(0,0,0,.18)"}}>
+            <div style={{background:"linear-gradient(180deg,#4a0e1e,#7a1a2a)",width:"58px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"space-around",padding:"10px 4px",boxShadow:"-2px 0 10px rgba(0,0,0,.18)"}}>
               {cd.past
                 ? <div style={{textAlign:"center",padding:"8px 0"}}><p style={{fontSize:"16px",color:"#fde8e8",fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",lineHeight:1.3}}>Ngày<br/>trọng<br/>đại! 🎉</p></div>
                 : [{v:cd.d,l:"ngày"},{v:cd.h,l:"giờ"},{v:cd.m,l:"phút"},{v:cd.s,l:"giây"}].map(item=>(
@@ -1556,7 +1729,7 @@ export default function WeddingApp() {
         <div className="hdiv"/>
         <div style={{position:"relative",overflow:"hidden"}}>
           <Photo url={d.photo_full} pos={d.full_pos} shape="none" style={{width:"100%",height:"340px"}}/>
-          <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.48)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div style={{position:"absolute",inset:0,background:"rgba(40,8,18,.65)",display:"flex",alignItems:"center",justifyContent:"center"}}>
             <p style={{fontFamily:"'Cinzel',serif",fontWeight:600,fontSize:"22px",color:"rgba(255,210,210,.2)",letterSpacing:".18em",textTransform:"uppercase",userSelect:"none"}}>LOVE</p>
           </div>
         </div>
@@ -1644,7 +1817,7 @@ export default function WeddingApp() {
         )}
       </div>
 
-      <div style={{background:"#3a0d0d",padding:"14px",textAlign:"center"}}>
+      <div style={{background:"#2d0a12",padding:"14px",textAlign:"center"}}>
         <p style={{color:"rgba(255,200,200,.3)",fontSize:"9.5px",fontFamily:"'Quicksand',sans-serif",letterSpacing:".22em"}}>{d.bride} &amp; {d.groom} · {fmtDate(d.wedding_date)} · Huế</p>
       </div>
 
@@ -1655,4 +1828,88 @@ export default function WeddingApp() {
     {/* ── Live Ticker — Fixed bottom, nằm ngoài #pw để position:fixed hoạt động ── */}
     <RSVPFeed/>
   </>);
+}// ══════════════════════════════════════════════
+// ENVELOPE SCREEN — Bìa thiệp trước khi mở
+// Tên người mời lấy từ URL: /TênNgười
+// ══════════════════════════════════════════════
+function EnvelopeScreen({ d, onOpen }) {
+  const [closing, setClosing] = useState(false);
+
+  // Lấy tên người mời từ pathname: /Anh Phú → "Anh Phú"
+  const guest = (() => {
+    const raw = window.location.pathname.replace(/^\//, "").trim();
+    return raw ? decodeURIComponent(raw.replace(/-/g," ")) : "";
+  })();
+
+  // Particles nền envelope — static data
+  const ENV_PTCS = [
+    {e:"🌸",l:"8%",d:"0s",dur:"12s",s:"14px"},
+    {e:"❤️",l:"22%",d:"2s",dur:"15s",s:"11px"},
+    {e:"✨",l:"38%",d:"4s",dur:"11s",s:"12px"},
+    {e:"🌹",l:"55%",d:"1s",dur:"14s",s:"13px"},
+    {e:"💕",l:"70%",d:"3s",dur:"13s",s:"10px"},
+    {e:"✨",l:"85%",d:"5s",dur:"12s",s:"11px"},
+    {e:"🌸",l:"15%",d:"7s",dur:"16s",s:"12px"},
+    {e:"❤️",l:"78%",d:"6s",dur:"14s",s:"10px"},
+  ];
+
+  const handleOpen = () => {
+    setClosing(true);
+    setTimeout(onOpen, 650);
+  };
+
+  return (
+    <div id="envelope-screen" className={closing ? "closing" : ""}>
+      {/* Particles nền */}
+      {ENV_PTCS.map((p,i) => (
+        <div key={i} className="env-ptc" style={{
+          left:p.l, fontSize:p.s,
+          animationDelay:p.d, animationDuration:p.dur,
+        }}>{p.e}</div>
+      ))}
+
+      <div className="env-card">
+        {/* Khung thiệp giấy */}
+        <div className="env-frame">
+          {/* Chữ Hỉ đôi */}
+          <div className="env-hi">囍</div>
+
+          <div className="env-divider"/>
+
+          {/* Kính mời */}
+          <p className="env-kinhmoi">Trân trọng kính mời</p>
+
+          {/* Tên người được mời */}
+          {guest ? (
+            <>
+              <p className="env-to">{guest}</p>
+              <p className="env-attend">tham dự tiệc cưới của</p>
+            </>
+          ) : (
+            <p className="env-attend" style={{marginBottom:"14px"}}>tham dự tiệc cưới của</p>
+          )}
+
+          {/* Tên cô dâu chú rể */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",flexWrap:"wrap",gap:"0"}}>
+            <span className="env-names">{d.groom || "Viết Định"}</span>
+            <span className="env-amp">&amp;</span>
+            <span className="env-names">{d.bride || "Bảo Ngân"}</span>
+          </div>
+
+          {/* Ngày */}
+          <p className="env-date">
+            {d.wedding_day || "Thứ Hai"} · {d.wedding_date || "26.04.2026"}
+          </p>
+
+          <div className="env-divider"/>
+        </div>
+
+        {/* Nút mở thiệp — bên dưới frame, trên nền tối */}
+        <button className="env-open-btn" onClick={handleOpen} aria-label="Mở thiệp cưới">
+          <span className="env-open-icon">💌</span>
+        </button>
+        <p className="env-hint">Nhấn để mở thiệp</p>
+      </div>
+    </div>
+  );
 }
