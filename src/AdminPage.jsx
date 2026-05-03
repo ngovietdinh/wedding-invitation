@@ -8,7 +8,9 @@ import { createClient } from "@supabase/supabase-js";
 
 const SB_URL = import.meta.env.VITE_SUPABASE_URL;
 const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const sb     = SB_URL && SB_KEY ? createClient(SB_URL, SB_KEY) : null;
+const sb = SB_URL && SB_KEY ? createClient(SB_URL, SB_KEY, {
+  auth: { persistSession: true, storageKey: "wedding-sb-auth" }
+}) : null;
 const ADM_PW = import.meta.env.VITE_ADMIN_PASS || "wedding2026";
 
 // Google Drive URL → direct image

@@ -11,7 +11,9 @@ import { createClient } from "@supabase/supabase-js";
 
 const SB_URL = import.meta.env.VITE_SUPABASE_URL;
 const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const sb = SB_URL && SB_KEY ? createClient(SB_URL, SB_KEY) : null;
+const sb = SB_URL && SB_KEY ? createClient(SB_URL, SB_KEY, {
+  auth: { persistSession: true, storageKey: "wedding-sb-auth" }
+}) : null;
 
 function gd(url) {
   if (!url?.trim()) return "";
@@ -2315,102 +2317,9 @@ function MiniMap({ d }) {
 // LOVE STORY — Hành trình chuyến xe, cuộn ngang
 // Station xen kẽ trên/dưới đường ray
 // ══════════════════════════════════════════════════════
-function LoveStory({ stories = [] }) {
-  const scrollRef = useRef(null);
-  const isDragging = useRef(false);
-  const startX    = useRef(0);
-  const scrollL   = useRef(0);
+// Hằng số URL ảnh hoa trang trí
+const FL = "https://assets.cinelove.me/templates/assets/efd815e3-41ff-4eb3-b31b-c25b202bc08c/016b5d70-8d6b-4f3c-b16c-2d93e447544c.png";
 
-  // Drag-to-scroll ngang
-  const onMD = (e) => {
-    isDragging.current = true;
-    startX.current  = e.pageX - scrollRef.current.offsetLeft;
-    scrollL.current = scrollRef.current.scrollLeft;
-  };
-  const onMM = (e) => {
-    if (!isDragging.current) return;
-    e.preventDefault();
-    const x = e.pageX - scrollRef.current.offsetLeft;
-    scrollRef.current.scrollLeft = scrollL.current - (x - startX.current);
-  };
-  const onMU = () => { isDragging.current = false; };
-
-  if (!stories.length) return null;
-
-  // Số lượng tie (thanh gỗ ngang) trên ray
-  const ties = Array.from({length: Math.max(20, stories.length*3)}, (_,i) => i);
-
-  return (
-    <div className="journey-wrap">
-      <Rv dir="u" delay={0}>
-        {/* Scroll container */}
-        <div className="journey-scroll" ref={scrollRef}
-          onMouseDown={onMD} onMouseMove={onMM}
-          onMouseUp={onMU} onMouseLeave={onMU}>
-
-          <div className="journey-inner" style={{
-            paddingTop:"120px",   /* không gian cho station trên */
-            paddingBottom:"120px",/* không gian cho station dưới */
-          }}>
-
-            {/* Đường ray ngang */}
-            <div style={{
-              position:"absolute",
-              top:"50%",left:0,right:0,
-              transform:"translateY(-50%)",
-              height:"6px",
-              background:"linear-gradient(90deg,transparent,rgba(99,23,23,.3) 3%,rgba(99,23,23,.45) 50%,rgba(99,23,23,.3) 97%,transparent)",
-              zIndex:0,
-            }}>
-              {/* Rail lines */}
-              <div style={{position:"absolute",top:0,left:0,right:0,height:"2px",background:"rgba(99,23,23,.15)"}}/>
-              <div style={{position:"absolute",bottom:0,left:0,right:0,height:"2px",background:"rgba(99,23,23,.15)"}}/>
-              {/* Thanh gỗ ngang */}
-              {ties.map((_, i) => (
-                <div key={i} className="rail-tie" style={{left:`${(i+.5)/(ties.length)*100}%`}}/>
-              ))}
-            </div>
-
-            {/* Icon tàu chạy */}
-            <div className="journey-train">🚂</div>
-
-            {/* Stations */}
-            {stories.map((s, i) => {
-              const isTop = i % 2 === 0;
-              return (
-                <div key={i} className={`station ${isTop ? "top" : "bot"}`}
-                  style={{zIndex:1}}>
-                  {/* Card */}
-                  <div className="station-card">
-                    <div className="station-date">{s.date}</div>
-                    <div className="station-title">{s.title}</div>
-                    <div className="station-body">{s.body}</div>
-                  </div>
-
-                  {/* Đường nối */}
-                  <div className="station-connector"/>
-
-                  {/* Icon node */}
-                  <div className="station-icon">{s.emoji || "❤️"}</div>
-
-                  {/* Đường nối xuống/lên đường ray */}
-                  <div className="station-connector"/>
-                </div>
-              );
-            })}
-
-          </div>
-        </div>
-
-        {/* Scroll hint */}
-        <div className="journey-hint">← Vuốt để xem hành trình →</div>
-      </Rv>
-    </div>
-  );
-}
-
-// Flower deco
-const FL="https://assets.cinelove.me/templates/assets/efd815e3-41ff-4eb3-b31b-c25b202bc08c/016b5d70-8d6b-4f3c-b16c-2d93e447544c.png";
 function Fl({top,left,w,h,rot,op=0.2}) {
   return <div style={{position:"absolute",top,left,width:w,height:h,
     backgroundImage:`url(${FL})`,backgroundSize:"cover",backgroundPosition:"center",
