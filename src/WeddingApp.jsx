@@ -827,200 +827,212 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
   font-weight:600;white-space:nowrap;
 }
 
-/* ══════════════════════════════════════════
-   ROAD STORY — Hành trình tình yêu dạng đường ô tô
-   ══════════════════════════════════════════ */
-.road-wrap{
-  padding:0;background:#fdf7f7;
-  overflow:hidden;position:relative;
+/* ══════════════════════════════════════════════════
+   SNAKE ROAD STORY — Đường chữ S từ trên xuống
+   Vừa khớp chiều rộng điện thoại, không cần kéo ngang
+   ══════════════════════════════════════════════════ */
+.snake-wrap{
+  background:#fdf7f7;
+  padding:0;overflow:hidden;position:relative;
 }
-/* Nền trời gradient */
-.road-sky{
-  position:absolute;top:0;left:0;right:0;height:60%;
-  background:linear-gradient(180deg,#fde8f0 0%,#fdf0f5 60%,#fdf7f7 100%);
+/* Nền trời + cỏ */
+.snake-bg{
+  position:absolute;inset:0;
+  background:linear-gradient(180deg,
+    #fde8f0 0%,#fdf0f5 20%,
+    #fdf7f7 40%,#fdf7f7 100%
+  );
   pointer-events:none;
 }
-/* Scroll container ngang */
-.road-scroll{
-  overflow-x:auto;overflow-y:hidden;
-  scrollbar-width:none;
-  -webkit-overflow-scrolling:touch;
-  padding:30px 20px 20px;
+
+/* Container chính */
+.snake-inner{
   position:relative;
-  cursor:grab;
-  min-height:340px;
+  padding:16px 0 20px;
+  width:100%;
 }
-.road-scroll::-webkit-scrollbar{display:none;}
-.road-scroll:active{cursor:grabbing;}
-/* SVG road path */
-.road-svg{
-  position:absolute;
-  top:0;left:0;
-  pointer-events:none;
+
+/* SVG đường S */
+.snake-svg{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  pointer-events:none;overflow:visible;
 }
-/* Inner content */
-.road-inner{
+
+/* Mỗi row là 1 milestone + đoạn đường */
+.snake-row{
   display:flex;
-  align-items:flex-end;
-  gap:0;
+  align-items:center;
+  width:100%;
   position:relative;
-  min-width:max-content;
-  height:280px;
+  min-height:110px;
 }
-/* Segment giữa 2 milestone */
-.road-seg{
-  width:130px;flex-shrink:0;
-  position:relative;
-  display:flex;align-items:center;justify-content:center;
-}
-/* Đường ô tô */
-.road-lane{
-  position:absolute;
-  height:28px;
-  left:0;right:0;
-  top:50%;transform:translateY(-50%);
+/* Row chẵn: trái → phải */
+.snake-row.ltr{ flex-direction:row; }
+/* Row lẻ: phải → trái */
+.snake-row.rtl{ flex-direction:row-reverse; }
+
+/* Đoạn đường ngang */
+.snake-road{
+  flex:1;height:26px;position:relative;
   background:#d4b8a8;
   border-top:2px solid #c8a898;
   border-bottom:2px solid #c8a898;
 }
-/* Vạch kẻ giữa đường */
-.road-dash{
-  position:absolute;
-  height:3px;top:50%;transform:translateY(-50%);
-  left:10%;right:10%;
+/* Vạch kẻ giữa */
+.snake-road::after{
+  content:'';position:absolute;
+  top:50%;left:0;right:0;height:2.5px;
+  transform:translateY(-50%);
   background:repeating-linear-gradient(90deg,
-    rgba(255,255,255,.7) 0,rgba(255,255,255,.7) 16px,
-    transparent 16px,transparent 28px
+    rgba(255,255,255,.7) 0,rgba(255,255,255,.7) 14px,
+    transparent 14px,transparent 24px
   );
 }
 /* Lề đường */
-.road-shoulder{
-  position:absolute;left:0;right:0;
-  height:8px;background:#c8b090;
+.snake-road-edge{
+  position:absolute;left:0;right:0;height:7px;
+  background:#c8b090;
 }
-.road-shoulder.top{top:calc(50% - 18px);}
-.road-shoulder.bot{bottom:calc(50% - 18px);}
-/* Cây bên đường */
-.road-tree{
-  position:absolute;font-size:14px;
-  pointer-events:none;
-  animation:treeWave 3s ease-in-out infinite;
-}
-@keyframes treeWave{0%,100%{transform:rotate(-2deg);}50%{transform:rotate(2deg);}}
+.snake-road-edge.top{top:-9px;}
+.snake-road-edge.bot{bottom:-9px;}
 
-/* Milestone — điểm dừng */
-.milestone{
+/* Đoạn cong nối giữa 2 row */
+.snake-curve{
+  width:100%;height:60px;position:relative;
   flex-shrink:0;
-  width:120px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  position:relative;
 }
-/* Card milestone — xen kẽ trên/dưới */
-.milestone.above .ms-card{
+.snake-curve-road{
   position:absolute;
-  bottom:calc(50% + 50px);
-  left:50%;transform:translateX(-50%);
+  width:calc(100% - 40px);
+  height:60px;
+  top:0;
+  border:14px solid #d4b8a8;
+  border-top:none;
+  box-sizing:border-box;
 }
-.milestone.below .ms-card{
-  position:absolute;
-  top:calc(50% + 50px);
-  left:50%;transform:translateX(-50%);
+.snake-curve-road.curve-r{
+  /* Cong sang phải */
+  left:20px;right:auto;
+  border-radius:0 0 80px 80px;
+  border-left:none;
 }
-/* Icon tại điểm dừng */
-.ms-stop{
-  position:absolute;
-  top:50%;left:50%;
-  transform:translate(-50%,-50%);
-  z-index:10;
+.snake-curve-road.curve-l{
+  /* Cong sang trái */
+  right:20px;left:auto;
+  border-radius:0 0 80px 80px;
+  border-right:none;
+}
+
+/* Milestone node */
+.snake-node{
+  flex-shrink:0;
   display:flex;flex-direction:column;align-items:center;
-  gap:3px;
+  position:relative;z-index:5;
+  padding:0 4px;
 }
-.ms-icon-wrap{
-  width:48px;height:48px;border-radius:50%;
+.snake-icon{
+  width:46px;height:46px;border-radius:50%;
   background:linear-gradient(135deg,#631717,#9a2a2a);
   display:flex;align-items:center;justify-content:center;
-  font-size:20px;
+  font-size:19px;
   box-shadow:
     0 0 0 4px rgba(99,23,23,.12),
     0 0 0 8px rgba(99,23,23,.06),
-    0 3px 12px rgba(99,23,23,.45);
+    0 3px 12px rgba(99,23,23,.4);
   border:2px solid rgba(255,180,160,.3);
-  transition:transform .3s;
+  cursor:pointer;
+  transition:transform .25s;
+  position:relative;z-index:2;
 }
-.ms-icon-wrap:hover{transform:scale(1.1);}
-/* Cột biển báo */
-.ms-post{
-  width:3px;height:32px;
-  background:linear-gradient(180deg,#8a6050,#6a4030);
-  border-radius:1px;
-  box-shadow:1px 0 3px rgba(0,0,0,.15);
-}
-.ms-post.above{margin-top:2px;}
-.ms-post.below{margin-bottom:2px;order:-1;}
-/* Card nội dung */
-.ms-card{
-  width:110px;
+.snake-icon:hover{ transform:scale(1.12); }
+
+/* Card popup khi nhấn */
+.snake-card{
   background:#fff;
-  border:1px solid rgba(99,23,23,.12);
-  border-radius:10px;
-  padding:8px 10px;
-  box-shadow:0 3px 14px rgba(99,23,23,.1),0 1px 4px rgba(0,0,0,.06);
-  transition:transform .25s,box-shadow .25s;
-  white-space:normal;
-  text-align:center;
+  border:1px solid rgba(99,23,23,.14);
+  border-radius:12px;
+  padding:10px 13px;
+  box-shadow:0 4px 18px rgba(99,23,23,.12),0 1px 4px rgba(0,0,0,.06);
+  margin-top:6px;
+  max-width:calc(100vw - 80px);
+  width:240px;
+  /* Mặc định ẩn, chỉ hiện khi active */
+  display:none;
+  position:absolute;
+  z-index:10;
+  animation:cardPop .25s cubic-bezier(.22,1,.36,1);
 }
-.ms-card:hover{
-  transform:translateY(-3px);
-  box-shadow:0 8px 24px rgba(99,23,23,.18);
+.snake-card.show{ display:block; }
+/* LTR: card nằm phía sau node (bên phải) */
+.snake-row.ltr .snake-card{ left:50%; transform:translateX(-20px); }
+/* RTL: card nằm bên trái */
+.snake-row.rtl .snake-card{ right:50%; transform:translateX(20px); }
+@keyframes cardPop{
+  from{opacity:0;transform:translateX(-20px) scale(.9);}
+  to{opacity:1;transform:translateX(-20px) scale(1);}
 }
-.ms-date{
-  font-size:8px;font-weight:700;letter-spacing:.16em;
+.snake-card-date{
+  font-size:8.5px;font-weight:700;letter-spacing:.18em;
   text-transform:uppercase;color:#9a2a2a;
   font-family:'Quicksand',sans-serif;margin-bottom:2px;
 }
-.ms-title{
+.snake-card-title{
   font-family:'Cormorant Garamond',serif;font-style:italic;
-  font-size:12.5px;font-weight:700;color:#3a0e18;
-  line-height:1.3;margin-bottom:3px;
+  font-size:14px;font-weight:700;color:#3a0e18;
+  line-height:1.3;margin-bottom:4px;
 }
-.ms-body{
-  font-size:9px;color:#8a5050;
+.snake-card-body{
+  font-size:10px;color:#8a5050;
   font-family:'Quicksand',sans-serif;
-  line-height:1.5;
+  line-height:1.55;
 }
-/* Ô tô chạy trên đường */
-.road-car{
-  position:absolute;
-  top:50%;
-  font-size:20px;
-  transform:translateY(-50%);
-  z-index:8;
-  animation:carRun 12s linear infinite;
-  filter:drop-shadow(0 2px 4px rgba(0,0,0,.3));
+.snake-card-close{
+  position:absolute;top:6px;right:8px;
+  font-size:10px;color:#c4a0a0;cursor:pointer;
+  background:none;border:none;padding:2px 4px;
 }
-@keyframes carRun{
-  0%  {left:-40px;opacity:0;}
-  4%  {opacity:1;}
-  96% {opacity:1;}
-  100%{left:calc(100% + 20px);opacity:0;}
+
+/* Date badge dưới icon */
+.snake-date{
+  font-size:8px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;color:#9a2a2a;
+  font-family:'Quicksand',sans-serif;
+  background:rgba(99,23,23,.08);
+  padding:2px 6px;border-radius:99px;
+  margin-top:4px;white-space:nowrap;
 }
-/* Mây trang trí */
-.road-cloud{
-  position:absolute;top:20px;
-  font-size:18px;opacity:.35;
+
+/* Cây trang trí */
+.snake-tree{
+  font-size:13px;position:absolute;
+  animation:treeWave 3s ease-in-out infinite;
+  pointer-events:none;z-index:1;
+}
+@keyframes treeWave{
+  0%,100%{transform:rotate(-2deg);}
+  50%{transform:rotate(2deg);}
+}
+/* Mây */
+.snake-cloud{
+  position:absolute;font-size:16px;opacity:.3;
   animation:cloudDrift linear infinite;
+  pointer-events:none;
 }
 @keyframes cloudDrift{
-  0%  {transform:translateX(0);}
-  100%{transform:translateX(80px);}
+  0%{transform:translateX(0);}100%{transform:translateX(30px);}
 }
-/* Scroll hint */
-.road-hint{
-  text-align:center;padding:4px 0 12px;
-  font-size:9px;letter-spacing:.2em;
-  color:rgba(99,23,23,.35);font-family:'Quicksand',sans-serif;
+/* Ô tô chạy dọc theo đường */
+.snake-car{
+  position:absolute;font-size:18px;
+  pointer-events:none;z-index:6;
+  transition:all .5s ease;
+}
+
+/* Hint nhấn icon */
+.snake-hint{
+  text-align:center;padding:6px 0 14px;
+  font-size:9px;letter-spacing:.2em;color:rgba(99,23,23,.35);
+  font-family:'Quicksand',sans-serif;
   animation:floatY 2.2s ease-in-out infinite;
 }
 
@@ -2065,169 +2077,154 @@ function FlipClock({ dateStr }) {
 // Milestones xen kẽ trên/dưới đường, có cây, mây, xe chạy
 // ════════════════════════════════════════════════════
 function LoveStory({ stories = [] }) {
-  const scrollRef = useRef(null);
-  const drag      = useRef({on:false,sx:0,sl:0});
-
-  const onMD = e => {
-    drag.current = {on:true, sx:e.pageX - scrollRef.current.offsetLeft, sl:scrollRef.current.scrollLeft};
-  };
-  const onMM = e => {
-    if (!drag.current.on) return;
-    e.preventDefault();
-    scrollRef.current.scrollLeft = drag.current.sl - (e.pageX - scrollRef.current.offsetLeft - drag.current.sx);
-  };
-  const onMU = () => { drag.current.on = false; };
+  const [active, setActive] = useState(null); // index card đang mở
 
   if (!stories.length) return null;
 
-  // Vị trí cây trang trí ngẫu nhiên nhưng cố định
-  const TREES = [
-    {pos:"8%",  side:"top",  emoji:"🌳", delay:"0s",   dur:"3.2s"},
-    {pos:"22%", side:"bot",  emoji:"🌲", delay:"0.5s", dur:"2.8s"},
-    {pos:"38%", side:"top",  emoji:"🌸", delay:"1s",   dur:"3.5s"},
-    {pos:"52%", side:"bot",  emoji:"🌳", delay:"0.3s", dur:"3s"},
-    {pos:"67%", side:"top",  emoji:"🌲", delay:"0.8s", dur:"2.9s"},
-    {pos:"81%", side:"bot",  emoji:"🌺", delay:"1.2s", dur:"3.3s"},
-    {pos:"94%", side:"top",  emoji:"🌳", delay:"0.1s", dur:"3.1s"},
-  ];
-  // Mây
+  // Toggle card
+  const toggle = (i) => setActive(prev => prev === i ? null : i);
+
+  // Cây trang trí — cố định theo position
+  const TREES = ["🌸","🌳","🌲","🌺","🌿","🌻","🍀"];
   const CLOUDS = [
-    {left:"5%",  top:"18px", dur:"20s", delay:"0s"},
-    {left:"35%", top:"8px",  dur:"25s", delay:"5s"},
-    {left:"65%", top:"22px", dur:"18s", delay:"2s"},
-    {left:"85%", top:"10px", dur:"22s", delay:"8s"},
+    {left:"15%",top:"18px",dur:"22s"},
+    {left:"55%",top:"8px", dur:"28s"},
+    {left:"80%",top:"20px",dur:"19s"},
   ];
 
-  // Tổng chiều rộng: mỗi milestone 120px + segment 130px ở giữa
-  const totalW = stories.length * 120 + (stories.length - 1) * 130 + 80;
+  // Chia stories thành các row — mỗi row 1 milestone
+  // Xen kẽ LTR/RTL để tạo đường chữ S
+  // Giữa 2 milestone có đoạn đường ngang + cua xuống
 
   return (
-    <div className="road-wrap">
-      {/* Nền trời */}
-      <div className="road-sky"/>
+    <div className="snake-wrap">
+      <div className="snake-bg"/>
 
       {/* Header */}
-      <div style={{textAlign:"center",padding:"20px 16px 0",position:"relative",zIndex:2}}>
+      <div style={{textAlign:"center",padding:"20px 16px 8px",position:"relative",zIndex:2}}>
         <Rv dir="u" delay={0}>
           <p style={{fontFamily:"'Quicksand',sans-serif",fontSize:"9.5px",fontWeight:700,
             letterSpacing:".28em",textTransform:"uppercase",color:"rgba(99,23,23,.4)",marginBottom:"5px"}}>
-            CHUYẾN HÀNH TRÌNH
+            CON ĐƯỜNG TÌNH YÊU
           </p>
           <span style={{display:"inline-block",borderTop:"1px solid rgba(99,23,23,.25)",
             paddingTop:"6px",fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
             fontSize:"24px",color:"#631717"}}>
-            Con Đường Tình Yêu
+            Hành Trình Của Chúng Tôi
           </span>
         </Rv>
       </div>
 
-      {/* Scroll container */}
-      <div className="road-scroll" ref={scrollRef}
-        onMouseDown={onMD} onMouseMove={onMM}
-        onMouseUp={onMU} onMouseLeave={onMU}>
+      <div className="snake-inner">
+        {/* Mây trang trí */}
+        {CLOUDS.map((cl,i) => (
+          <div key={i} className="snake-cloud"
+            style={{left:cl.left,top:cl.top,animationDuration:cl.dur}}>☁️</div>
+        ))}
 
-        {/* SVG đường cong — tạo cảm giác đường uốn khúc */}
-        <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,pointerEvents:"none",zIndex:0}}>
+        {stories.map((s, i) => {
+          const isLTR = i % 2 === 0; // Hàng chẵn: trái→phải, lẻ: phải→trái
+          const isLast = i === stories.length - 1;
+          const isOpen = active === i;
+          const treeEmoji = TREES[i % TREES.length];
 
-          {/* Mây */}
-          {CLOUDS.map((cl,i) => (
-            <div key={i} className="road-cloud"
-              style={{left:cl.left,top:cl.top,animationDuration:cl.dur,animationDelay:cl.delay}}>
-              ☁️
-            </div>
-          ))}
-        </div>
+          return (
+            <React.Fragment key={i}>
+              {/* ── Hàng milestone ── */}
+              <Rv dir="u" delay={i * 0.08}>
+                <div className={`snake-row ${isLTR ? "ltr" : "rtl"}`}>
 
-        <div className="road-inner" style={{width:`${totalW}px`}}>
-
-          {stories.map((s, i) => {
-            const isAbove = i % 2 === 0;
-            // Tính vị trí Y của card dựa trên trên/dưới
-            const cardTopOffset = isAbove ? "auto" : "calc(50% + 54px)";
-            const cardBotOffset = isAbove ? "calc(50% + 54px)" : "auto";
-
-            return (
-              <React.Fragment key={i}>
-                {/* Milestone */}
-                <div className={`milestone ${isAbove?"above":"below"}`}
-                  style={{height:"280px",position:"relative",width:"120px",flexShrink:0}}>
-
-                  {/* Đường ô tô ngang qua milestone */}
-                  <div style={{position:"absolute",top:"50%",left:"-5px",right:"-5px",
-                    height:"28px",transform:"translateY(-50%)",
-                    background:"#d4b8a8",
-                    borderTop:"2px solid #c8a898",borderBottom:"2px solid #c8a898",
-                    zIndex:1}}>
-                    <div style={{position:"absolute",top:"50%",left:0,right:0,
-                      height:"3px",transform:"translateY(-50%)",
-                      background:"repeating-linear-gradient(90deg,rgba(255,255,255,.7) 0,rgba(255,255,255,.7) 14px,transparent 14px,transparent 24px)"}}/>
-                  </div>
-
-                  {/* Cây bên đường */}
-                  {TREES[i % TREES.length] && (
-                    <div style={{
-                      position:"absolute",
-                      [isAbove?"bottom":"top"]:"calc(50% + 22px)",
-                      left:"15px",
-                      fontSize:"16px",zIndex:2,
-                      animation:`treeWave ${TREES[i%TREES.length].dur} ease-in-out ${TREES[i%TREES.length].delay} infinite`,
-                    }}>
-                      {TREES[i % TREES.length].emoji}
+                  {/* Đoạn đường ngang bên "vào" */}
+                  <div className="snake-road" style={{flex:1}}>
+                    <div className="snake-road-edge top"/>
+                    <div className="snake-road-edge bot"/>
+                    {/* Cây bên đường */}
+                    <div className="snake-tree"
+                      style={{
+                        [isLTR?"top":"bottom"]:"calc(100% + 5px)",
+                        [isLTR?"left":"right"]:"25%",
+                        animationDelay:`${i*0.4}s`,
+                      }}>
+                      {treeEmoji}
                     </div>
-                  )}
-
-                  {/* Biển hiệu điểm dừng */}
-                  <div className="ms-stop" style={{zIndex:5}}>
-                    {/* Cột biển báo */}
-                    {isAbove && <div className="ms-post above"/>}
-                    {/* Icon */}
-                    <div className="ms-icon-wrap">{s.emoji || "❤️"}</div>
-                    {!isAbove && <div className="ms-post below"/>}
                   </div>
 
-                  {/* Card nội dung */}
-                  <div className="ms-card" style={{
-                    position:"absolute",
-                    top: isAbove ? "auto" : "calc(50% + 56px)",
-                    bottom: isAbove ? "calc(50% + 56px)" : "auto",
-                    left:"50%",
-                    transform:"translateX(-50%)",
-                    zIndex:6,
-                  }}>
-                    <div className="ms-date">{s.date}</div>
-                    <div className="ms-title">{s.title}</div>
-                    {s.body && <div className="ms-body">{s.body}</div>}
+                  {/* ── Milestone node ── */}
+                  <div className="snake-node">
+                    {/* Icon nhấn để mở card */}
+                    <div className="snake-icon" onClick={() => toggle(i)}>
+                      {s.emoji || "❤️"}
+                    </div>
+                    {/* Date badge */}
+                    <div className="snake-date">{s.date}</div>
+
+                    {/* Card popup — hiện khi nhấn */}
+                    <div className={`snake-card${isOpen ? " show" : ""}`}
+                      style={{
+                        // LTR: card bên phải node; RTL: bên trái
+                        left: isLTR ? "auto" : "auto",
+                        right: isLTR ? "auto" : "auto",
+                        // Căn theo hướng row
+                        ...(isLTR
+                          ? {left:"54px", right:"auto", transform:"none"}
+                          : {right:"54px", left:"auto", transform:"none"}
+                        ),
+                        top:"0",
+                        // Nếu sắp ra ngoài màn hình thì flip
+                      }}>
+                      <button className="snake-card-close" onClick={(e)=>{e.stopPropagation();toggle(i);}}>✕</button>
+                      <div className="snake-card-date">{s.date}</div>
+                      <div className="snake-card-title">{s.title}</div>
+                      {s.body && <div className="snake-card-body">{s.body}</div>}
+                    </div>
+                  </div>
+
+                  {/* Đoạn đường ngang bên "ra" */}
+                  <div className="snake-road" style={{flex:1}}>
+                    <div className="snake-road-edge top"/>
+                    <div className="snake-road-edge bot"/>
                   </div>
                 </div>
+              </Rv>
 
-                {/* Đoạn đường giữa các milestone */}
-                {i < stories.length - 1 && (
-                  <div className="road-seg" style={{height:"280px",position:"relative",width:"130px",flexShrink:0}}>
-                    <div className="road-lane">
-                      <div className="road-dash"/>
-                    </div>
-                    <div className="road-shoulder top"/>
-                    <div className="road-shoulder bot"/>
-                  </div>
-                )}
-              </React.Fragment>
-            );
-          })}
-        </div>
-
-        {/* Ô tô chạy */}
-        <div className="road-car">🚗</div>
+              {/* ── Đoạn cua chữ S nối sang hàng tiếp theo ── */}
+              {!isLast && (
+                <div style={{
+                  position:"relative",
+                  width:"100%",
+                  height:"56px",
+                  overflow:"hidden",
+                }}>
+                  {/* Nửa vòng cua — bên trái hoặc phải tùy hàng */}
+                  <div style={{
+                    position:"absolute",
+                    // LTR xong: cua sang phải (nửa vòng bên phải)
+                    // RTL xong: cua sang trái (nửa vòng bên trái)
+                    [isLTR ? "right" : "left"]: "0",
+                    width:"55%",
+                    height:"56px",
+                    borderRadius: isLTR ? "0 0 40px 40px" : "0 0 40px 40px",
+                    // Đường road
+                    borderLeft:  isLTR ? "none" : "26px solid #d4b8a8",
+                    borderRight: isLTR ? "26px solid #d4b8a8" : "none",
+                    borderBottom:"26px solid #d4b8a8",
+                    borderTop:"none",
+                    boxSizing:"border-box",
+                  }}/>
+                </div>
+              )}
+            </React.Fragment>
+          );
+        })}
       </div>
 
-      {/* Scroll hint */}
-      <div className="road-hint">← Vuốt để theo hành trình →</div>
+      {/* Hint */}
+      <div className="snake-hint">Nhấn vào icon để xem câu chuyện ♥</div>
     </div>
   );
 }
 
-// ══════════════════════════════════════════════════════
-// MINI MAP — Tương tác + lịch trình buổi lễ
-// ══════════════════════════════════════════════════════
+
 function MiniMap({ d }) {
   const [tab, setTab] = useState("map"); // "map" | "schedule"
 
