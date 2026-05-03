@@ -827,213 +827,102 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
   font-weight:600;white-space:nowrap;
 }
 
-/* ══════════════════════════════════════════════════
-   SNAKE ROAD STORY — Đường chữ S từ trên xuống
-   Vừa khớp chiều rộng điện thoại, không cần kéo ngang
-   ══════════════════════════════════════════════════ */
-.snake-wrap{
-  background:#fdf7f7;
+/* ════════════════════════════════════════════════════
+   ROAD STORY 3D — Đường liên tục chữ S, perspective 3D
+   ════════════════════════════════════════════════════ */
+.road3d-wrap{
+  background:linear-gradient(180deg,#fde8f0 0%,#fdf4f7 30%,#fef9fb 100%);
   padding:0;overflow:hidden;position:relative;
 }
-/* Nền trời + cỏ */
-.snake-bg{
-  position:absolute;inset:0;
-  background:linear-gradient(180deg,
-    #fde8f0 0%,#fdf0f5 20%,
-    #fdf7f7 40%,#fdf7f7 100%
-  );
-  pointer-events:none;
+.road3d-header{
+  text-align:center;padding:22px 16px 4px;position:relative;z-index:2;
 }
-
-/* Container chính */
-.snake-inner{
-  position:relative;
-  padding:16px 0 20px;
-  width:100%;
+/* Canvas SVG toàn bộ section */
+.road3d-canvas{
+  position:relative;width:100%;
+  /* Chiều cao = số milestone × 160px */
 }
-
-/* SVG đường S */
-.snake-svg{
+.road3d-svg{
   position:absolute;top:0;left:0;width:100%;height:100%;
-  pointer-events:none;overflow:visible;
+  overflow:visible;pointer-events:none;
 }
 
-/* Mỗi row là 1 milestone + đoạn đường */
-.snake-row{
-  display:flex;
-  align-items:center;
-  width:100%;
-  position:relative;
-  min-height:110px;
-}
-/* Row chẵn: trái → phải */
-.snake-row.ltr{ flex-direction:row; }
-/* Row lẻ: phải → trái */
-.snake-row.rtl{ flex-direction:row-reverse; }
-
-/* Đoạn đường ngang */
-.snake-road{
-  flex:1;height:26px;position:relative;
-  background:#d4b8a8;
-  border-top:2px solid #c8a898;
-  border-bottom:2px solid #c8a898;
-}
-/* Vạch kẻ giữa */
-.snake-road::after{
-  content:'';position:absolute;
-  top:50%;left:0;right:0;height:2.5px;
-  transform:translateY(-50%);
-  background:repeating-linear-gradient(90deg,
-    rgba(255,255,255,.7) 0,rgba(255,255,255,.7) 14px,
-    transparent 14px,transparent 24px
-  );
-}
-/* Lề đường */
-.snake-road-edge{
-  position:absolute;left:0;right:0;height:7px;
-  background:#c8b090;
-}
-.snake-road-edge.top{top:-9px;}
-.snake-road-edge.bot{bottom:-9px;}
-
-/* Đoạn cong nối giữa 2 row */
-.snake-curve{
-  width:100%;height:60px;position:relative;
-  flex-shrink:0;
-}
-.snake-curve-road{
+/* Mỗi milestone block */
+.road3d-block{
   position:absolute;
-  width:calc(100% - 40px);
-  height:60px;
-  top:0;
-  border:14px solid #d4b8a8;
-  border-top:none;
-  box-sizing:border-box;
+  display:flex;align-items:center;
+  gap:0;
 }
-.snake-curve-road.curve-r{
-  /* Cong sang phải */
-  left:20px;right:auto;
-  border-radius:0 0 80px 80px;
-  border-left:none;
+/* Block lẻ: icon bên trái */
+.road3d-block.left{ flex-direction:row; }
+/* Block chẵn: icon bên phải */
+.road3d-block.right{ flex-direction:row-reverse; }
+
+/* Card nội dung */
+.road3d-card{
+  flex:1;
+  background:#fff;
+  border:1px solid rgba(99,23,23,.12);
+  border-radius:12px;
+  padding:11px 14px;
+  box-shadow:0 4px 18px rgba(99,23,23,.1),0 1px 4px rgba(0,0,0,.05);
+  max-width:160px;
+  position:relative;
+  transition:transform .25s,box-shadow .25s;
 }
-.snake-curve-road.curve-l{
-  /* Cong sang trái */
-  right:20px;left:auto;
-  border-radius:0 0 80px 80px;
-  border-right:none;
+.road3d-card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 8px 26px rgba(99,23,23,.18);
+}
+/* Mũi tên card → icon */
+.road3d-block.left  .road3d-card::after{content:'';position:absolute;right:-8px;top:50%;transform:translateY(-50%);border:8px solid transparent;border-left:8px solid #fff;}
+.road3d-block.left  .road3d-card::before{content:'';position:absolute;right:-10px;top:50%;transform:translateY(-50%);border:9px solid transparent;border-left:9px solid rgba(99,23,23,.12);}
+.road3d-block.right .road3d-card::after{content:'';position:absolute;left:-8px;top:50%;transform:translateY(-50%);border:8px solid transparent;border-right:8px solid #fff;}
+.road3d-block.right .road3d-card::before{content:'';position:absolute;left:-10px;top:50%;transform:translateY(-50%);border:9px solid transparent;border-right:9px solid rgba(99,23,23,.12);}
+
+.road3d-date{
+  font-size:8px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  color:#9a2a2a;font-family:'Quicksand',sans-serif;margin-bottom:2px;
+}
+.road3d-title{
+  font-family:'Cormorant Garamond',serif;font-style:italic;
+  font-size:14px;font-weight:700;color:#3a0e18;line-height:1.3;margin-bottom:3px;
+}
+.road3d-body{
+  font-size:9.5px;color:#8a5050;font-family:'Quicksand',sans-serif;line-height:1.55;
 }
 
-/* Milestone node */
-.snake-node{
-  flex-shrink:0;
-  display:flex;flex-direction:column;align-items:center;
-  position:relative;z-index:5;
-  padding:0 4px;
-}
-.snake-icon{
-  width:46px;height:46px;border-radius:50%;
+/* Icon milestone */
+.road3d-icon{
+  width:52px;height:52px;border-radius:50%;flex-shrink:0;
   background:linear-gradient(135deg,#631717,#9a2a2a);
   display:flex;align-items:center;justify-content:center;
-  font-size:19px;
+  font-size:22px;z-index:5;
   box-shadow:
-    0 0 0 4px rgba(99,23,23,.12),
-    0 0 0 8px rgba(99,23,23,.06),
-    0 3px 12px rgba(99,23,23,.4);
+    0 0 0 5px rgba(99,23,23,.1),
+    0 0 0 10px rgba(99,23,23,.05),
+    0 4px 14px rgba(99,23,23,.4);
   border:2px solid rgba(255,180,160,.3);
-  cursor:pointer;
-  transition:transform .25s;
-  position:relative;z-index:2;
+  position:relative;
+  transition:transform .3s;
 }
-.snake-icon:hover{ transform:scale(1.12); }
-
-/* Card popup khi nhấn */
-.snake-card{
-  background:#fff;
-  border:1px solid rgba(99,23,23,.14);
-  border-radius:12px;
-  padding:10px 13px;
-  box-shadow:0 4px 18px rgba(99,23,23,.12),0 1px 4px rgba(0,0,0,.06);
-  margin-top:6px;
-  max-width:calc(100vw - 80px);
-  width:240px;
-  /* Mặc định ẩn, chỉ hiện khi active */
-  display:none;
-  position:absolute;
-  z-index:10;
-  animation:cardPop .25s cubic-bezier(.22,1,.36,1);
-}
-.snake-card.show{ display:block; }
-/* LTR: card nằm phía sau node (bên phải) */
-.snake-row.ltr .snake-card{ left:50%; transform:translateX(-20px); }
-/* RTL: card nằm bên trái */
-.snake-row.rtl .snake-card{ right:50%; transform:translateX(20px); }
-@keyframes cardPop{
-  from{opacity:0;transform:translateX(-20px) scale(.9);}
-  to{opacity:1;transform:translateX(-20px) scale(1);}
-}
-.snake-card-date{
-  font-size:8.5px;font-weight:700;letter-spacing:.18em;
-  text-transform:uppercase;color:#9a2a2a;
-  font-family:'Quicksand',sans-serif;margin-bottom:2px;
-}
-.snake-card-title{
-  font-family:'Cormorant Garamond',serif;font-style:italic;
-  font-size:14px;font-weight:700;color:#3a0e18;
-  line-height:1.3;margin-bottom:4px;
-}
-.snake-card-body{
-  font-size:10px;color:#8a5050;
-  font-family:'Quicksand',sans-serif;
-  line-height:1.55;
-}
-.snake-card-close{
-  position:absolute;top:6px;right:8px;
-  font-size:10px;color:#c4a0a0;cursor:pointer;
-  background:none;border:none;padding:2px 4px;
+.road3d-icon:hover{transform:scale(1.1);}
+/* Số thứ tự nhỏ */
+.road3d-num{
+  position:absolute;top:-2px;right:-2px;
+  width:18px;height:18px;border-radius:50%;
+  background:#fff;border:2px solid #9a2a2a;
+  font-size:9px;font-weight:800;color:#631717;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Cinzel',serif;
 }
 
-/* Date badge dưới icon */
-.snake-date{
-  font-size:8px;font-weight:700;letter-spacing:.12em;
-  text-transform:uppercase;color:#9a2a2a;
-  font-family:'Quicksand',sans-serif;
-  background:rgba(99,23,23,.08);
-  padding:2px 6px;border-radius:99px;
-  margin-top:4px;white-space:nowrap;
-}
-
-/* Cây trang trí */
-.snake-tree{
-  font-size:13px;position:absolute;
-  animation:treeWave 3s ease-in-out infinite;
-  pointer-events:none;z-index:1;
-}
-@keyframes treeWave{
-  0%,100%{transform:rotate(-2deg);}
-  50%{transform:rotate(2deg);}
-}
-/* Mây */
-.snake-cloud{
-  position:absolute;font-size:16px;opacity:.3;
-  animation:cloudDrift linear infinite;
-  pointer-events:none;
-}
-@keyframes cloudDrift{
-  0%{transform:translateX(0);}100%{transform:translateX(30px);}
-}
-/* Ô tô chạy dọc theo đường */
-.snake-car{
-  position:absolute;font-size:18px;
-  pointer-events:none;z-index:6;
-  transition:all .5s ease;
-}
-
-/* Hint nhấn icon */
-.snake-hint{
-  text-align:center;padding:6px 0 14px;
-  font-size:9px;letter-spacing:.2em;color:rgba(99,23,23,.35);
-  font-family:'Quicksand',sans-serif;
-  animation:floatY 2.2s ease-in-out infinite;
+/* ── Xe ô tô chạy dọc đường ── */
+@keyframes carDrive{
+  0%  {offset-distance:0%;   opacity:0;}
+  3%  {opacity:1;}
+  97% {opacity:1;}
+  100%{offset-distance:100%; opacity:0;}
 }
 
 /* ══ MINI MAP ══ */
@@ -2077,149 +1966,204 @@ function FlipClock({ dateStr }) {
 // Milestones xen kẽ trên/dưới đường, có cây, mây, xe chạy
 // ════════════════════════════════════════════════════
 function LoveStory({ stories = [] }) {
-  const [active, setActive] = useState(null); // index card đang mở
-
   if (!stories.length) return null;
 
-  // Toggle card
-  const toggle = (i) => setActive(prev => prev === i ? null : i);
+  // ── Tính toán path SVG chữ S liên tục ──
+  // Mỗi milestone chiếm 1 "segment" cao SEGMENT_H px
+  // Đường đi: trái→phải rồi vòng cung → phải→trái → vòng cung → ...
+  const W          = 419;   // chiều rộng thiệp trừ padding
+  const SEGMENT_H  = 170;   // chiều cao mỗi segment
+  const ROAD_W     = 36;    // bề rộng đường
+  const PAD_X      = 30;    // lề trái phải
+  const ICON_X_L   = 80;    // X icon hàng LTR
+  const ICON_X_R   = W - 80;// X icon hàng RTL
+  const ICON_Y_OFF = SEGMENT_H / 2; // Y icon = giữa segment
 
-  // Cây trang trí — cố định theo position
-  const TREES = ["🌸","🌳","🌲","🌺","🌿","🌻","🍀"];
+  const n         = stories.length;
+  const totalH    = n * SEGMENT_H + 60; // tổng chiều cao canvas
+
+  // Build SVG path liên tục (centerline của đường)
+  // Hàng 0: đi ngang từ PAD_X → W-PAD_X (trái→phải)
+  // Curve 0→1: nửa vòng tròn bên phải
+  // Hàng 1: đi ngang từ W-PAD_X → PAD_X (phải→trái)
+  // Curve 1→2: nửa vòng tròn bên trái
+  // ...
+  let pathD = "";
+  const rowY = (i) => 40 + i * SEGMENT_H + ICON_Y_OFF; // Y center của row i
+
+  for (let i = 0; i < n; i++) {
+    const y    = rowY(i);
+    const isLR = i % 2 === 0; // true = trái→phải
+    const x0   = isLR ? PAD_X     : W - PAD_X;
+    const x1   = isLR ? W - PAD_X : PAD_X;
+
+    if (i === 0) {
+      pathD += `M ${x0} ${y} `;
+    } else {
+      // Đã kết thúc đoạn trước tại x0 của row hiện tại
+    }
+    pathD += `L ${x1} ${y} `;
+
+    // Vòng cua sang row tiếp theo
+    if (i < n - 1) {
+      const yNext = rowY(i + 1);
+      const r     = (yNext - y) / 2; // bán kính vòng cua
+      // isLR: cua bên phải (sweep-flag=1), ngược lại: cua bên trái (sweep=0)
+      const cx = isLR ? W - PAD_X : PAD_X;
+      pathD += `A ${r} ${r} 0 0 ${isLR ? 1 : 0} ${isLR ? W - PAD_X : PAD_X} ${yNext} `;
+    }
+  }
+
+  // Vị trí icon và card cho mỗi milestone
+  const getIconX = (i) => i % 2 === 0 ? ICON_X_L : ICON_X_R;
+  const getCardSide = (i) => i % 2 === 0 ? "left" : "right";
+
+  // Mây trang trí
   const CLOUDS = [
-    {left:"15%",top:"18px",dur:"22s"},
-    {left:"55%",top:"8px", dur:"28s"},
-    {left:"80%",top:"20px",dur:"19s"},
+    { x: "12%", y: 18, dur: "22s" },
+    { x: "60%", y: 8,  dur: "28s" },
+    { x: "80%", y: 24, dur: "19s" },
   ];
 
-  // Chia stories thành các row — mỗi row 1 milestone
-  // Xen kẽ LTR/RTL để tạo đường chữ S
-  // Giữa 2 milestone có đoạn đường ngang + cua xuống
-
   return (
-    <div className="snake-wrap">
-      <div className="snake-bg"/>
-
+    <div className="road3d-wrap">
       {/* Header */}
-      <div style={{textAlign:"center",padding:"20px 16px 8px",position:"relative",zIndex:2}}>
-        <Rv dir="u" delay={0}>
-          <p style={{fontFamily:"'Quicksand',sans-serif",fontSize:"9.5px",fontWeight:700,
-            letterSpacing:".28em",textTransform:"uppercase",color:"rgba(99,23,23,.4)",marginBottom:"5px"}}>
-            CON ĐƯỜNG TÌNH YÊU
-          </p>
-          <span style={{display:"inline-block",borderTop:"1px solid rgba(99,23,23,.25)",
-            paddingTop:"6px",fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
-            fontSize:"24px",color:"#631717"}}>
-            Hành Trình Của Chúng Tôi
-          </span>
-        </Rv>
-      </div>
+     
 
-      <div className="snake-inner">
-        {/* Mây trang trí */}
-        {CLOUDS.map((cl,i) => (
-          <div key={i} className="snake-cloud"
-            style={{left:cl.left,top:cl.top,animationDuration:cl.dur}}>☁️</div>
-        ))}
+      {/* Canvas */}
+      <div className="road3d-canvas" style={{height:`${totalH}px`,position:"relative",overflow:"visible"}}>
 
+        {/* SVG — đường S liên tục */}
+        <svg className="road3d-svg" viewBox={`0 0 ${W} ${totalH}`}
+          preserveAspectRatio="xMidYMid meet"
+          style={{width:"100%",height:"100%"}}>
+
+          {/* Mây */}
+          {CLOUDS.map((cl,i) => (
+            <text key={i} x={cl.x} y={cl.y} fontSize="18" opacity=".28"
+              style={{animation:`cloudDrift ${cl.dur} linear infinite`}}>☁️</text>
+          ))}
+
+          {/* === Lớp đường đổ bóng (offset thấp hơn) === */}
+          <path d={pathD}
+            fill="none"
+            stroke="rgba(100,40,30,.18)"
+            strokeWidth={ROAD_W + 10}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            transform="translate(3,5)"
+          />
+
+          {/* === Lề đường (cỏ / vỉa hè) === */}
+          <path d={pathD}
+            fill="none"
+            stroke="#c8b090"
+            strokeWidth={ROAD_W + 12}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+
+          {/* === Mặt đường chính === */}
+          <path d={pathD}
+            fill="none"
+            stroke="#d4b8a8"
+            strokeWidth={ROAD_W}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+
+          {/* === Vạch kẻ giữa (đứt) === */}
+          <path d={pathD}
+            fill="none"
+            stroke="rgba(255,255,255,.65)"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeDasharray="18 14"
+          />
+
+          {/* === Xe ô tô chạy dọc đường (CSS motion path) === */}
+          <text fontSize="36" style={{
+            offsetPath:`path("${pathD}")`,
+            animation:"carDrive 30s linear infinite",
+            dominantBaseline:"middle",
+            textAnchor:"middle",
+          }}>💞💞💞💞</text>
+
+          {/* === Cây dọc đường === */}
+          {stories.map((_, i) => {
+            const y    = rowY(i);
+            const isLR = i % 2 === 0;
+            const trees = ["🌸","🌳","🌲","🌺","🌿","🌻","🍀"];
+            // Cây bên đối diện icon
+            const tx1  = isLR ? W - PAD_X + 18 : PAD_X - 18;
+            const tx2  = isLR ? PAD_X - 18     : W - PAD_X + 18;
+            return (
+              <React.Fragment key={i}>
+                <text x={tx1} y={y - 14} fontSize="14" textAnchor="middle"
+                  style={{animation:`treeWave 3s ease-in-out ${(i*0.4).toFixed(1)}s infinite`}}>
+                  {trees[i % trees.length]}
+                </text>
+                {i < stories.length-1 && (
+                  <text x={tx2} y={y + SEGMENT_H/2 + 8} fontSize="13" textAnchor="middle"
+                    style={{animation:`treeWave 2.8s ease-in-out ${(i*0.3).toFixed(1)}s infinite`}}>
+                    {trees[(i+2) % trees.length]}
+                  </text>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </svg>
+
+        {/* === Milestones (HTML overlay trên SVG) === */}
         {stories.map((s, i) => {
-          const isLTR = i % 2 === 0; // Hàng chẵn: trái→phải, lẻ: phải→trái
-          const isLast = i === stories.length - 1;
-          const isOpen = active === i;
-          const treeEmoji = TREES[i % TREES.length];
+          const isLR   = i % 2 === 0;
+          const iconX  = getIconX(i);
+          const y      = rowY(i);
+          // % position trên chiều rộng
+          const iconXPct = (iconX / W * 100).toFixed(1) + "%";
+
+          // Card bên đối diện icon
+          const cardLeft = isLR
+            ? `calc(${iconXPct} + 34px)`   // icon bên trái → card bên phải icon
+            : "16px";                        // icon bên phải → card bên trái
+          const cardRight = isLR
+            ? "auto"
+            : `calc(${(100 - iconX/W*100).toFixed(1)}% + 34px)`;
+          const cardWidth = "calc(50% - 50px)";
 
           return (
-            <React.Fragment key={i}>
-              {/* ── Hàng milestone ── */}
-              <Rv dir="u" delay={i * 0.08}>
-                <div className={`snake-row ${isLTR ? "ltr" : "rtl"}`}>
+            <Rv key={i} dir={isLR?"l":"r"} delay={i*0.07}>
+              {/* Icon */}
+              <div className="road3d-icon" style={{
+                position:"absolute",
+                left:`calc(${iconXPct} - 26px)`,
+                top:`${y - 26}px`,
+                zIndex:5,
+              }}>
+                {s.emoji||"❤️"}
+                <div className="road3d-num">{i+1}</div>
+              </div>
 
-                  {/* Đoạn đường ngang bên "vào" */}
-                  <div className="snake-road" style={{flex:1}}>
-                    <div className="snake-road-edge top"/>
-                    <div className="snake-road-edge bot"/>
-                    {/* Cây bên đường */}
-                    <div className="snake-tree"
-                      style={{
-                        [isLTR?"top":"bottom"]:"calc(100% + 5px)",
-                        [isLTR?"left":"right"]:"25%",
-                        animationDelay:`${i*0.4}s`,
-                      }}>
-                      {treeEmoji}
-                    </div>
-                  </div>
-
-                  {/* ── Milestone node ── */}
-                  <div className="snake-node">
-                    {/* Icon nhấn để mở card */}
-                    <div className="snake-icon" onClick={() => toggle(i)}>
-                      {s.emoji || "❤️"}
-                    </div>
-                    {/* Date badge */}
-                    <div className="snake-date">{s.date}</div>
-
-                    {/* Card popup — hiện khi nhấn */}
-                    <div className={`snake-card${isOpen ? " show" : ""}`}
-                      style={{
-                        // LTR: card bên phải node; RTL: bên trái
-                        left: isLTR ? "auto" : "auto",
-                        right: isLTR ? "auto" : "auto",
-                        // Căn theo hướng row
-                        ...(isLTR
-                          ? {left:"54px", right:"auto", transform:"none"}
-                          : {right:"54px", left:"auto", transform:"none"}
-                        ),
-                        top:"0",
-                        // Nếu sắp ra ngoài màn hình thì flip
-                      }}>
-                      <button className="snake-card-close" onClick={(e)=>{e.stopPropagation();toggle(i);}}>✕</button>
-                      <div className="snake-card-date">{s.date}</div>
-                      <div className="snake-card-title">{s.title}</div>
-                      {s.body && <div className="snake-card-body">{s.body}</div>}
-                    </div>
-                  </div>
-
-                  {/* Đoạn đường ngang bên "ra" */}
-                  <div className="snake-road" style={{flex:1}}>
-                    <div className="snake-road-edge top"/>
-                    <div className="snake-road-edge bot"/>
-                  </div>
-                </div>
-              </Rv>
-
-              {/* ── Đoạn cua chữ S nối sang hàng tiếp theo ── */}
-              {!isLast && (
-                <div style={{
-                  position:"relative",
-                  width:"100%",
-                  height:"56px",
-                  overflow:"hidden",
-                }}>
-                  {/* Nửa vòng cua — bên trái hoặc phải tùy hàng */}
-                  <div style={{
-                    position:"absolute",
-                    // LTR xong: cua sang phải (nửa vòng bên phải)
-                    // RTL xong: cua sang trái (nửa vòng bên trái)
-                    [isLTR ? "right" : "left"]: "0",
-                    width:"55%",
-                    height:"56px",
-                    borderRadius: isLTR ? "0 0 40px 40px" : "0 0 40px 40px",
-                    // Đường road
-                    borderLeft:  isLTR ? "none" : "26px solid #d4b8a8",
-                    borderRight: isLTR ? "26px solid #d4b8a8" : "none",
-                    borderBottom:"26px solid #d4b8a8",
-                    borderTop:"none",
-                    boxSizing:"border-box",
-                  }}/>
-                </div>
-              )}
-            </React.Fragment>
+              {/* Card */}
+              <div className="road3d-card" style={{
+                position:"absolute",
+                top:`${y - 48}px`,
+                left:  isLR ? `calc(${iconXPct} + 34px)` : "16px",
+                right: isLR ? "16px" : `calc(${(100-iconX/W*100).toFixed(1)}% + 34px)`,
+                maxWidth:"160px",
+              }}>
+                <div className="road3d-date">{s.date}</div>
+                <div className="road3d-title">{s.title}</div>
+                {s.body && <div className="road3d-body">{s.body}</div>}
+              </div>
+            </Rv>
           );
         })}
       </div>
 
-      {/* Hint */}
-      <div className="snake-hint">Nhấn vào icon để xem câu chuyện ♥</div>
+      {/* Padding bottom */}
+      <div style={{height:"16px"}}/>
     </div>
   );
 }
@@ -2372,23 +2316,23 @@ export default function WeddingApp() {
     });
   },[]);
 
-  // ── AUTO SCROLL ── mobile + desktop, không giật, không bị pause sớm
+  // ── AUTO SCROLL ── mobile + desktop
+  // Click/tap bất kỳ đâu → dừng; sau 5s không thao tác → cuộn tiếp
   useEffect(()=>{
     const pw = document.getElementById("pw");
     const sh = document.getElementById("sh");
     if (!pw) return;
 
-    const SPEED    = 0.55;
-    const RESUME   = 3500;
-    const START_MS = 2500; // Đủ thời gian để page load xong
+    const SPEED     = 0.55;
+    const RESUME_MS = 5000; // 5 giây không thao tác → resume
+    const START_MS  = 2500;
 
-    let raf        = null;
-    let running    = false;
-    let paused     = false;
-    let resumeTmr  = null;
-    let listenReady = false; // Chỉ listen touch SAU khi scroll đã bắt đầu
+    let raf         = null;
+    let running     = false;
+    let paused      = false;
+    let resumeTmr   = null;
+    let listenReady = false;
 
-    // Mobile: #pw overflow:visible → dùng window.scrollBy
     const mob    = () => window.innerWidth <= 460;
     const getTop = () => mob() ? window.scrollY : pw.scrollTop;
     const getMax = () => mob()
@@ -2399,17 +2343,17 @@ export default function WeddingApp() {
       else pw.scrollTop += n;
     };
 
-    const pause = (hide=false) => {
+    // ── Pause + tự resume sau RESUME_MS ──
+    const pause = (hideHint=false) => {
       paused = true;
-      if (hide && sh) sh.classList.add("gone");
+      if (hideHint && sh) sh.classList.add("gone");
       clearTimeout(resumeTmr);
-      resumeTmr = setTimeout(() => { paused = false; }, RESUME);
+      resumeTmr = setTimeout(() => { paused = false; }, RESUME_MS);
     };
 
     // ── RAF loop ──
     const loop = () => {
       if (!running) return;
-      // Ẩn scroll hint
       if (sh && getTop() > 80) sh.classList.add("gone");
       if (!paused) {
         doScroll(SPEED);
@@ -2418,38 +2362,46 @@ export default function WeddingApp() {
       raf = requestAnimationFrame(loop);
     };
 
-    // ── Desktop: wheel ──
+    // ── Desktop: wheel chuột ──
     const onWheel = () => pause(true);
+
+    // ── Desktop + Mobile: CLICK / TAP bất kỳ đâu ──
+    // Dừng cuộn ngay khi nhấn, bỏ qua các element tương tác
+    const SKIP_TAGS = new Set(["BUTTON","A","INPUT","SELECT","TEXTAREA","LABEL"]);
+    const onClick = (e) => {
+      if (!listenReady) return;
+      // Cho phép click vào button/link bình thường, nhưng vẫn pause scroll
+      pause(true);
+    };
 
     // ── Desktop: keyboard ──
     const onKey = (e) => {
-      if (["ArrowDown","ArrowUp","PageDown","PageUp"," "].includes(e.key)) pause(false);
+      if (["ArrowDown","ArrowUp","PageDown","PageUp"," "].includes(e.key)) pause(true);
     };
 
-    // ── Mobile: touch ──
-    // Chỉ listen SAU khi scroll đã chạy (listenReady=true)
-    // → không bị pause bởi gesture mở trang
+    // ── Mobile: touchmove (vuốt) ──
     let ty0 = 0;
     const onTS = (e) => {
-      if (!listenReady) return; // bỏ qua gesture trước khi scroll bắt đầu
+      if (!listenReady) return;
       ty0 = e.touches[0].clientY;
     };
     const onTM = (e) => {
       if (!listenReady) return;
-      if (Math.abs(e.touches[0].clientY - ty0) > 10) pause(true);
+      if (Math.abs(e.touches[0].clientY - ty0) > 8) pause(true);
     };
 
-    pw.addEventListener("wheel",          onWheel, { passive:true });
-    window.addEventListener("keydown",    onKey,   { passive:true });
-    window.addEventListener("touchstart", onTS,    { passive:true });
-    window.addEventListener("touchmove",  onTM,    { passive:true });
+    // Gắn tất cả listeners
+    pw.addEventListener("wheel",       onWheel,  { passive:true });
+    pw.addEventListener("click",       onClick,  { passive:true });
+    window.addEventListener("click",   onClick,  { passive:true });
+    window.addEventListener("keydown", onKey,    { passive:true });
+    window.addEventListener("touchstart", onTS,  { passive:true });
+    window.addEventListener("touchmove",  onTM,  { passive:true });
 
-    // Chỉ scroll khi thiệp đã được mở (opened=true)
-    // Kiểm tra DOM: #envelope-screen không còn tồn tại
+    // Đợi envelope mở rồi mới scroll
     const waitOpen = (cb) => {
       const check = () => {
-        const env = document.getElementById("envelope-screen");
-        if (!env) cb();
+        if (!document.getElementById("envelope-screen")) cb();
         else setTimeout(check, 200);
       };
       setTimeout(check, START_MS);
@@ -2458,7 +2410,7 @@ export default function WeddingApp() {
     const startTmr = setTimeout(() => {
       waitOpen(() => {
         running = true;
-        setTimeout(() => { listenReady = true; }, 500);
+        setTimeout(() => { listenReady = true; }, 600);
         raf = requestAnimationFrame(loop);
       });
     }, 0);
@@ -2468,8 +2420,10 @@ export default function WeddingApp() {
       clearTimeout(resumeTmr);
       cancelAnimationFrame(raf);
       running = false;
-      pw.removeEventListener("wheel",       onWheel);
-      window.removeEventListener("keydown", onKey);
+      pw.removeEventListener("wheel",      onWheel);
+      pw.removeEventListener("click",      onClick);
+      window.removeEventListener("click",  onClick);
+      window.removeEventListener("keydown",onKey);
       window.removeEventListener("touchstart", onTS);
       window.removeEventListener("touchmove",  onTM);
     };
