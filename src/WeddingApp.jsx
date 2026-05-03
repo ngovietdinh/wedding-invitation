@@ -95,6 +95,19 @@ const DEF = {
   sm1_shape:"wave",sm2_shape:"art",wide1_shape:"soft",
   wide2_shape:"soft",pair1_shape:"soft",pair2_shape:"soft",full_shape:"none",
   music_youtube:"",gallery:[],
+  // Map
+  venue_lat:"16.4637",venue_lng:"107.5909",
+  venue_embed:"",           // Google Maps embed URL tuỳ chọn
+  // Flip Clock
+  flip_show:true,           // hiện countdown flip clock
+  // Love Story
+  love_story:[
+    {date:"01.2022",title:"Lần đầu gặp nhau",body:"Một buổi chiều bình thường trở thành ký ức không thể quên...",emoji:"👀"},
+    {date:"03.2022",title:"Hẹn hò chính thức",body:"Dưới ánh hoàng hôn Huế, anh đã nắm tay em và hỏi một câu...",emoji:"💑"},
+    {date:"12.2023",title:"Những chuyến đi cùng nhau",body:"Mỗi hành trình đều trở nên ý nghĩa hơn khi có nhau bên cạnh.",emoji:"✈️"},
+    {date:"02.2025",title:"Cầu hôn",body:"Giữa không gian lãng mạn, anh quỳ xuống và nói: Em có muốn làm vợ anh không?",emoji:"💍"},
+    {date:"04.2026",title:"Ngày trọng đại",body:"Và hôm nay — chúng ta bắt đầu một hành trình mới, cùng nhau mãi mãi.",emoji:"💒"},
+  ],
 };
 
 // ══════════════════════════════════════════════
@@ -684,6 +697,246 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 /* ── Misc ── */
 .on-photo{text-shadow:0 1px 4px rgba(0,0,0,.95),0 0 14px rgba(0,0,0,.8),0 2px 10px rgba(0,0,0,.9);}
 .hdiv{height:4px;background:linear-gradient(90deg,transparent,#631717,transparent);}
+
+/* ══ FLIP CLOCK COUNTDOWN ══ */
+.flip-clock{
+  display:flex;align-items:center;justify-content:center;
+  gap:6px;padding:20px 0 8px;
+}
+.flip-unit{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.flip-cards{position:relative;width:52px;height:60px;}
+.flip-card{
+  width:52px;height:28px;
+  background:linear-gradient(180deg,#4a0e1e 0%,#4a0e1e 49%,#3a0818 51%,#3a0818 100%);
+  border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Cinzel',serif;font-size:22px;font-weight:600;
+  color:#fff;
+  position:absolute;
+  overflow:hidden;
+  box-shadow:0 2px 6px rgba(0,0,0,.35);
+  transform-origin:bottom center;
+  backface-visibility:hidden;
+}
+.flip-card.top{top:0;border-bottom:1px solid rgba(0,0,0,.35);}
+.flip-card.bot{top:32px;border-top:1px solid rgba(255,255,255,.08);}
+.flip-card.anim-top{
+  transform-origin:bottom center;
+  animation:flipTop .3s ease-in forwards;
+}
+.flip-card.anim-bot{
+  transform-origin:top center;
+  animation:flipBot .3s ease-out forwards;
+  animation-delay:.3s;
+}
+@keyframes flipTop{
+  0%{transform:rotateX(0);}
+  100%{transform:rotateX(-90deg);}
+}
+@keyframes flipBot{
+  0%{transform:rotateX(90deg);}
+  100%{transform:rotateX(0);}
+}
+.flip-sep{
+  font-size:28px;font-weight:700;color:rgba(255,180,160,.6);
+  line-height:1;margin-top:-8px;font-family:'Cinzel',serif;
+}
+.flip-label{
+  font-size:9px;letter-spacing:.2em;text-transform:uppercase;
+  color:rgba(255,180,160,.65);font-family:'Quicksand',sans-serif;
+}
+
+/* ══ MINI MAP ══ */
+.map-wrap{
+  position:relative;width:100%;height:280px;
+  overflow:hidden;
+  background:#e8d5c8;
+}
+.map-iframe{width:100%;height:100%;border:none;display:block;}
+.map-overlay{
+  position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(58,14,24,.18) 0%,transparent 30%,transparent 70%,rgba(58,14,24,.22) 100%);
+}
+/* Pin animation */
+.map-pin-wrap{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-100%);
+  z-index:5;pointer-events:none;
+}
+.map-pin{
+  width:36px;height:36px;
+  background:linear-gradient(135deg,#631717,#9a2a2a);
+  border-radius:50% 50% 50% 0;
+  transform:rotate(-45deg);
+  box-shadow:0 4px 14px rgba(99,23,23,.55);
+  animation:pinBounce 1.8s ease-in-out infinite;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid rgba(255,200,200,.4);
+}
+.map-pin::after{
+  content:'';display:block;
+  width:10px;height:10px;
+  background:rgba(255,220,220,.9);
+  border-radius:50%;
+  transform:rotate(45deg);
+}
+@keyframes pinBounce{
+  0%,100%{transform:rotate(-45deg) translateY(0);}
+  50%{transform:rotate(-45deg) translateY(-5px);}
+}
+.map-pin-shadow{
+  width:16px;height:6px;
+  background:rgba(0,0,0,.22);
+  border-radius:50%;
+  margin:3px auto 0;
+  animation:pinShadow 1.8s ease-in-out infinite;
+}
+@keyframes pinShadow{
+  0%,100%{transform:scaleX(1);opacity:.22;}
+  50%{transform:scaleX(.7);opacity:.12;}
+}
+/* Venue info card nổi trên map */
+.map-info{
+  position:absolute;bottom:0;left:0;right:0;
+  background:linear-gradient(180deg,transparent,rgba(40,8,18,.95) 35%);
+  padding:28px 14px 12px;
+  display:flex;align-items:flex-end;justify-content:space-between;
+  gap:10px;
+}
+.map-info-text{}
+.map-venue-name{
+  font-family:'Dancing Script',cursive;font-weight:700;
+  font-size:19px;color:rgba(255,220,220,.95);
+  text-shadow:0 1px 4px rgba(0,0,0,.5);
+  margin-bottom:2px;
+}
+.map-venue-addr{
+  font-size:10.5px;color:rgba(255,190,180,.7);
+  font-family:'Quicksand',sans-serif;line-height:1.4;
+}
+.map-btn{
+  flex-shrink:0;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  background:linear-gradient(135deg,#631717,#9a2a2a);
+  border:none;cursor:pointer;
+  padding:8px 12px;border-radius:8px;
+  box-shadow:0 3px 12px rgba(99,23,23,.45);
+  transition:transform .15s,box-shadow .15s;
+  text-decoration:none;
+}
+.map-btn:active{transform:scale(.95);}
+.map-btn-icon{font-size:18px;}
+.map-btn-txt{
+  font-size:8.5px;font-weight:700;letter-spacing:.1em;
+  color:rgba(255,220,220,.9);font-family:'Quicksand',sans-serif;
+  text-transform:uppercase;
+}
+/* Tab switch: Bản đồ / Lịch trình */
+.map-tabs{
+  display:flex;border-bottom:1px solid rgba(99,23,23,.15);
+  background:#fff;
+}
+.map-tab{
+  flex:1;padding:9px 6px;border:none;background:transparent;
+  font-family:'Quicksand',sans-serif;font-size:11.5px;font-weight:600;
+  color:#9a6060;cursor:pointer;transition:all .2s;
+  border-bottom:2.5px solid transparent;
+}
+.map-tab.on{color:#631717;border-bottom-color:#631717;}
+/* Lịch trình */
+.schedule-list{padding:12px 14px;}
+.schedule-item{
+  display:flex;gap:10px;padding:8px 0;
+  border-bottom:1px solid rgba(99,23,23,.08);
+}
+.schedule-item:last-child{border-bottom:none;}
+.schedule-time{
+  font-family:'Cinzel',serif;font-size:11px;font-weight:600;
+  color:#631717;width:62px;flex-shrink:0;padding-top:1px;
+}
+.schedule-dot{
+  width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:3px;
+  background:linear-gradient(135deg,#631717,#9a2a2a);
+  box-shadow:0 0 0 3px rgba(99,23,23,.12);
+}
+.schedule-body{flex:1;}
+.schedule-title{font-size:12px;font-weight:700;color:#2a1010;margin-bottom:1px;}
+.schedule-place{font-size:10.5px;color:#9a6060;}
+
+/* ══ LOVE STORY TIMELINE ══ */
+.love-wrap{padding:8px 0 4px;}
+.love-item{
+  display:flex;gap:0;
+  position:relative;
+  padding:0 16px 0 0;
+}
+/* Đường dọc */
+.love-item::before{
+  content:'';
+  position:absolute;left:50%;top:0;bottom:0;
+  width:2px;
+  background:linear-gradient(180deg,rgba(99,23,23,.12),rgba(99,23,23,.25),rgba(99,23,23,.12));
+  transform:translateX(-50%);
+  z-index:0;
+}
+.love-item:last-child::before{display:none;}
+/* Node trung tâm */
+.love-node{
+  position:absolute;left:50%;top:22px;
+  transform:translate(-50%,-50%);
+  width:36px;height:36px;
+  background:linear-gradient(135deg,#631717,#9a2a2a);
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;z-index:1;
+  box-shadow:0 2px 10px rgba(99,23,23,.35),0 0 0 4px rgba(99,23,23,.1);
+}
+/* Card trái / phải xen kẽ */
+.love-card{
+  width:calc(50% - 24px);
+  background:#fff;
+  border:1px solid rgba(99,23,23,.12);
+  border-radius:10px;
+  padding:11px 12px;
+  position:relative;
+  box-shadow:0 2px 10px rgba(99,23,23,.08);
+}
+.love-card.left{margin-right:auto;margin-left:16px;margin-bottom:28px;}
+.love-card.right{margin-left:auto;margin-right:16px;margin-bottom:28px;}
+/* Mũi tên card */
+.love-card.left::after{
+  content:'';position:absolute;right:-8px;top:18px;
+  border:8px solid transparent;
+  border-left:8px solid #fff;
+}
+.love-card.left::before{
+  content:'';position:absolute;right:-10px;top:17px;
+  border:9px solid transparent;
+  border-left:9px solid rgba(99,23,23,.12);
+}
+.love-card.right::after{
+  content:'';position:absolute;left:-8px;top:18px;
+  border:8px solid transparent;
+  border-right:8px solid #fff;
+}
+.love-card.right::before{
+  content:'';position:absolute;left:-10px;top:17px;
+  border:9px solid transparent;
+  border-right:9px solid rgba(99,23,23,.12);
+}
+.love-date{
+  font-size:9px;letter-spacing:.18em;text-transform:uppercase;
+  color:#9a2a2a;font-family:'Quicksand',sans-serif;font-weight:700;
+  margin-bottom:3px;
+}
+.love-title{
+  font-family:'Cormorant Garamond',serif;font-style:italic;
+  font-size:14px;font-weight:700;color:#3a0e18;margin-bottom:4px;
+}
+.love-body{
+  font-size:10.5px;color:#6a4040;font-family:'Quicksand',sans-serif;
+  line-height:1.6;
+}
 .sec-dark{background:linear-gradient(145deg,#3a0e18,#3d1010);}
 .sec-dark2{background:linear-gradient(145deg,#2a0808,#631717);}
 .sec-mid{background:linear-gradient(145deg,#7a1a2a,#3a0e18);}
@@ -1315,6 +1568,196 @@ function CommentBox() {
   );
 }
 
+// ══════════════════════════════════════════════════════
+// FLIP CLOCK — 3D countdown đồng hồ lật
+// ══════════════════════════════════════════════════════
+function FlipDigit({ value }) {
+  const prev  = useRef(value);
+  const [flip, setFlip] = useState(false);
+  const [show, setShow] = useState({ cur: value, next: value });
+
+  useEffect(() => {
+    if (value === prev.current) return;
+    setShow({ cur: prev.current, next: value });
+    setFlip(true);
+    const t = setTimeout(() => {
+      setShow({ cur: value, next: value });
+      setFlip(false);
+      prev.current = value;
+    }, 620);
+    return () => clearTimeout(t);
+  }, [value]);
+
+  const s = String(show.cur).padStart(2, "0");
+  const n = String(show.next).padStart(2, "0");
+  return (
+    <div className="flip-cards">
+      {/* Top half — số cũ */}
+      <div className={`flip-card top${flip ? " anim-top" : ""}`}>
+        <span style={{ transform:"translateY(-14px)", display:"block" }}>{s}</span>
+      </div>
+      {/* Bottom half — số mới */}
+      <div className={`flip-card bot${flip ? " anim-bot" : ""}`}>
+        <span style={{ transform:"translateY(14px)", display:"block" }}>{n}</span>
+      </div>
+    </div>
+  );
+}
+
+function FlipClock({ dateStr }) {
+  const cd = useCd(dateStr);
+
+  if (cd.past) return (
+    <div style={{ textAlign:"center", padding:"1.5rem 0" }}>
+      <p style={{ fontFamily:"'Cormorant Garamond',serif", fontStyle:"italic",
+        fontSize:"22px", color:"rgba(255,210,200,.9)" }}>
+        🎉 Hôm nay là ngày trọng đại!
+      </p>
+    </div>
+  );
+
+  const units = [
+    { v: cd.d,  label: "Ngày" },
+    { v: cd.h,  label: "Giờ" },
+    { v: cd.m,  label: "Phút" },
+    { v: cd.s,  label: "Giây" },
+  ];
+
+  return (
+    <div className="flip-clock">
+      {units.map((u, i) => (
+        <div key={u.label} style={{ display:"flex", alignItems:"center", gap:"6px" }}>
+          <div className="flip-unit">
+            <FlipDigit value={u.v} />
+            <span className="flip-label">{u.label}</span>
+          </div>
+          {i < units.length - 1 && (
+            <span className="flip-sep" style={{ opacity: i === 0 ? 0 : 1 }}>:</span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════
+// MINI MAP — Tương tác + lịch trình buổi lễ
+// ══════════════════════════════════════════════════════
+function MiniMap({ d }) {
+  const [tab, setTab] = useState("map"); // "map" | "schedule"
+
+  // Build Google Maps embed từ toạ độ hoặc URL
+  const buildEmbed = () => {
+    if (d.venue_embed?.trim()) return d.venue_embed;
+    const lat = parseFloat(d.venue_lat) || 16.4637;
+    const lng = parseFloat(d.venue_lng) || 107.5909;
+    return `https://maps.google.com/maps?q=${lat},${lng}&z=16&output=embed&hl=vi`;
+  };
+
+  // Build link dẫn đường native
+  const navUrl = () => {
+    const lat = parseFloat(d.venue_lat) || 16.4637;
+    const lng = parseFloat(d.venue_lng) || 107.5909;
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    if (isIOS) return `maps://maps.apple.com/?daddr=${lat},${lng}`;
+    return `https://maps.google.com/maps?daddr=${lat},${lng}`;
+  };
+
+  const scheduleItems = [
+    { time: d.ceremony1_time || "07:30 SA", title: d.ceremony1_label || "Lễ Gia Tiên", place: d.ceremony1_addr || "" },
+    { time: d.ceremony2_time || "10:00 SA", title: d.ceremony2_label || "Lễ Cưới",     place: d.ceremony2_addr || "" },
+    { time: d.wedding_time  || "11:00 SA", title: "Tiệc mừng",                         place: d.venue_name || "" },
+  ];
+
+  return (
+    <div>
+      {/* Tabs */}
+      <div className="map-tabs">
+        <button className={`map-tab${tab==="map"?" on":""}`} onClick={()=>setTab("map")}>📍 Địa điểm</button>
+        <button className={`map-tab${tab==="schedule"?" on":""}`} onClick={()=>setTab("schedule")}>📋 Lịch trình</button>
+      </div>
+
+      {tab === "map" ? (
+        <div className="map-wrap">
+          {/* Google Maps iframe */}
+          <iframe
+            className="map-iframe"
+            src={buildEmbed()}
+            allowFullScreen loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            title="Địa điểm đám cưới"
+          />
+          <div className="map-overlay"/>
+
+          {/* Pin animation — chỉ hiện khi không có embed */}
+          {!d.venue_embed && (
+            <div className="map-pin-wrap">
+              <div className="map-pin"/>
+              <div className="map-pin-shadow"/>
+            </div>
+          )}
+
+          {/* Info bar dưới map */}
+          <div className="map-info">
+            <div className="map-info-text">
+              <div className="map-venue-name">{d.venue_name}</div>
+              <div className="map-venue-addr">{d.venue_address}</div>
+            </div>
+            <a href={navUrl()} target="_blank" rel="noopener noreferrer"
+              className="map-btn" onClick={e=>e.stopPropagation()}>
+              <span className="map-btn-icon">🧭</span>
+              <span className="map-btn-txt">Dẫn đường</span>
+            </a>
+          </div>
+        </div>
+      ) : (
+        <div className="schedule-list">
+          {scheduleItems.map((item, i) => (
+            <div key={i} className="schedule-item">
+              <div className="schedule-time">{item.time}</div>
+              <div className="schedule-dot"/>
+              <div className="schedule-body">
+                <div className="schedule-title">{item.title}</div>
+                {item.place && <div className="schedule-place">📍 {item.place}</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════
+// LOVE STORY TIMELINE — Câu chuyện tình yêu
+// ══════════════════════════════════════════════════════
+function LoveStory({ stories = [] }) {
+  if (!stories.length) return null;
+
+  return (
+    <div className="love-wrap">
+      {stories.map((s, i) => {
+        const isLeft = i % 2 === 0;
+        return (
+          <Rv key={i} dir={isLeft ? "r" : "l"} delay={0.05} style={{ position:"relative" }}>
+            {/* Item wrapper */}
+            <div className="love-item">
+              {/* Card */}
+              <div className={`love-card ${isLeft ? "left" : "right"}`}>
+                <div className="love-date">{s.date}</div>
+                <div className="love-title">{s.title}</div>
+                <div className="love-body">{s.body}</div>
+              </div>
+              {/* Node ở giữa */}
+              <div className="love-node">{s.emoji || "♥"}</div>
+            </div>
+          </Rv>
+        );
+      })}
+    </div>
+  );
+}
+
 // Flower deco
 const FL="https://assets.cinelove.me/templates/assets/efd815e3-41ff-4eb3-b31b-c25b202bc08c/016b5d70-8d6b-4f3c-b16c-2d93e447544c.png";
 function Fl({top,left,w,h,rot,op=0.2}) {
@@ -1578,6 +2021,31 @@ export default function WeddingApp() {
         <Rv dir="u" delay={0.15}><p style={{fontSize:"11.5px",fontFamily:"'Quicksand',sans-serif",fontWeight:500,color:"#444",lineHeight:1.88,textAlign:"center"}}>{nl(d.sec_invite_body)}</p></Rv>
       </div>
 
+      {/* ═══ LOVE STORY TIMELINE ═══ */}
+      {Array.isArray(d.love_story)&&d.love_story.length>0&&(
+        <>
+          <div style={{position:"relative",background:"#fdf7f7",padding:"22px 0 4px"}}>
+            <div style={{position:"absolute",top:0,left:0,right:0,height:"3px",background:"linear-gradient(90deg,transparent,#631717,transparent)"}}/>
+            <div style={{textAlign:"center",marginBottom:"12px",padding:"0 16px"}}>
+              <Rv dir="u" delay={0}>
+                <span style={{display:"inline-block",borderTop:"1px solid rgba(99,23,23,.35)",paddingTop:"7px",
+                  fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:"26px",color:"#631717"}}>
+                  Hành Trình Của Chúng Tôi
+                </span>
+              </Rv>
+              <Rv dir="u" delay={0.1}>
+                <p style={{fontSize:"10px",fontWeight:700,letterSpacing:".18em",textTransform:"uppercase",
+                  color:"#9a6060",fontFamily:"'Quicksand',sans-serif",marginTop:"4px"}}>
+                  OUR LOVE STORY
+                </p>
+              </Rv>
+            </div>
+            <LoveStory stories={d.love_story}/>
+          </div>
+          <div className="hdiv"/>
+        </>
+      )}
+
       {/* ═══ NGÀY GIỜ ĐỊA ĐIỂM ═══ */}
       <div style={{position:"relative",background:"#fff",padding:"22px 18px 20px",textAlign:"center"}}>
         <div style={{position:"absolute",top:0,left:0,right:0,height:"3px",background:"linear-gradient(90deg,transparent,#631717,transparent)"}}/>
@@ -1598,6 +2066,15 @@ export default function WeddingApp() {
           </a>
         </Rv>
       </div>
+
+      {/* ═══ MINI MAP TƯƠNG TÁC ═══ */}
+      <div style={{position:"relative",background:"#fff"}}>
+        <div style={{position:"absolute",top:0,left:0,right:0,height:"3px",background:"linear-gradient(90deg,transparent,#631717,transparent)"}}/>
+        <Rv dir="u" delay={0}>
+          <MiniMap d={d}/>
+        </Rv>
+      </div>
+      <div className="hdiv"/>
 
       {/* ═══ 2 LỄ ═══ */}
       <div style={{position:"relative",background:"#fdf7f7",padding:"22px 16px 20px"}}>
@@ -1635,23 +2112,24 @@ export default function WeddingApp() {
         </div>
       </div>
 
-      {/* ═══ CALENDAR + COUNTDOWN ═══ */}
+      {/* ═══ CALENDAR + FLIP CLOCK COUNTDOWN ═══ */}
       <div style={{position:"relative",background:"#fff"}}>
         <div style={{position:"absolute",top:0,left:0,right:0,height:"3px",background:"linear-gradient(90deg,transparent,#631717,transparent)"}}/>
-        <Rv dir="s" delay={0.1} style={{overflow:"hidden"}}><Cal dateStr={d.wedding_date}/></Rv>
-        <div style={{display:"grid",gridTemplateColumns:"1fr auto"}}>
-          <div/>
-          <Rv dir="l" delay={0.15}>
-            <div style={{background:"linear-gradient(180deg,#4a0e1e,#7a1a2a)",width:"58px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"space-around",padding:"10px 4px",boxShadow:"-2px 0 10px rgba(0,0,0,.18)"}}>
-              {cd.past
-                ? <div style={{textAlign:"center",padding:"8px 0"}}><p style={{fontSize:"16px",color:"#fde8e8",fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",lineHeight:1.3}}>Ngày<br/>trọng<br/>đại! 🎉</p></div>
-                : [{v:cd.d,l:"ngày"},{v:cd.h,l:"giờ"},{v:cd.m,l:"phút"},{v:cd.s,l:"giây"}].map(item=>(
-                <div key={item.l} style={{textAlign:"center"}}>
-                  <p style={{fontSize:"18px",fontWeight:700,fontFamily:"'Cinzel',serif",color:"#fff",lineHeight:1}}>{String(item.v??0).padStart(2,"0")}</p>
-                  <p style={{fontSize:"7.5px",letterSpacing:".2em",color:"rgba(253,232,232,.75)",fontFamily:"'Quicksand',sans-serif",marginTop:"2px"}}>{item.l}</p>
-                </div>
-              ))}
-            </div>
+        {/* Calendar */}
+        <Rv dir="s" delay={0.1} style={{overflow:"hidden"}}>
+          <Cal dateStr={d.wedding_date}/>
+        </Rv>
+        {/* Flip Clock bên dưới calendar */}
+        <div style={{background:"linear-gradient(145deg,#3a0e18,#631717)",paddingBottom:"14px"}}>
+          <Rv dir="u" delay={0.1}>
+            <p style={{textAlign:"center",paddingTop:"12px",fontSize:"10px",
+              letterSpacing:".25em",textTransform:"uppercase",
+              color:"rgba(255,190,180,.6)",fontFamily:"'Quicksand',sans-serif",fontWeight:600}}>
+              Đếm ngược ngày cưới
+            </p>
+          </Rv>
+          <Rv dir="s" delay={0.15}>
+            <FlipClock dateStr={d.wedding_date}/>
           </Rv>
         </div>
       </div>
