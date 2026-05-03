@@ -6,7 +6,7 @@
 // 4. Photo drag-to-crop: kéo để chọn vùng hiển thị
 // 5. Icon nốt nhạc, auto-play mobile
 // ============================================================
-import { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const SB_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -102,11 +102,15 @@ const DEF = {
   flip_show:true,           // hiện countdown flip clock
   // Love Story
   love_story:[
-    {date:"01.2022",title:"Lần đầu gặp nhau",body:"Một buổi chiều bình thường trở thành ký ức không thể quên...",emoji:"👀"},
-    {date:"03.2022",title:"Hẹn hò chính thức",body:"Dưới ánh hoàng hôn Huế, anh đã nắm tay em và hỏi một câu...",emoji:"💑"},
-    {date:"12.2023",title:"Những chuyến đi cùng nhau",body:"Mỗi hành trình đều trở nên ý nghĩa hơn khi có nhau bên cạnh.",emoji:"✈️"},
-    {date:"02.2025",title:"Cầu hôn",body:"Giữa không gian lãng mạn, anh quỳ xuống và nói: Em có muốn làm vợ anh không?",emoji:"💍"},
-    {date:"04.2026",title:"Ngày trọng đại",body:"Và hôm nay — chúng ta bắt đầu một hành trình mới, cùng nhau mãi mãi.",emoji:"💒"},
+    {date:"12.2024",title:"Lần đầu gặp nhau",body:"Một buổi tối cuối năm, số phận đã đưa hai chúng ta lại gần nhau — và mọi thứ bắt đầu từ đây.",emoji:"✨"},
+    {date:"01.2025",title:"Tin nhắn đầu tiên",body:"Anh đã ngồi gõ đi gõ lại mãi mới dám gửi. Em trả lời chỉ sau 3 phút — tim anh đập nhanh hơn bao giờ hết.",emoji:"💬"},
+    {date:"02.2025",title:"Buổi hẹn đầu tiên",body:"Một ly cà phê ở Huế, một buổi chiều dài không muốn về. Anh biết em là người đặc biệt từ khoảnh khắc đó.",emoji:"☕"},
+    {date:"04.2025",title:"Chính thức hẹn hò",body:"Dưới ánh hoàng hôn bên sông Hương, anh nắm tay em và hỏi: 'Em có muốn là người của anh không?'",emoji:"🌅"},
+    {date:"07.2025",title:"Chuyến đi đầu tiên",body:"Cùng nhau đặt chân đến những nơi mới, mỗi bức ảnh đều chứa đựng cả một trời kỷ niệm.",emoji:"🏞️"},
+    {date:"09.2025",title:"Ra mắt gia đình",body:"Ngày anh đến nhà em với bó hoa trên tay, bước qua cánh cửa đó là bước qua một cột mốc mới của cuộc đời.",emoji:"🏠"},
+    {date:"12.2025",title:"Một năm bên nhau",body:"365 ngày với vô vàn kỷ niệm — cãi nhau rồi lại làm lành, cùng cười, cùng khóc, cùng lớn lên.",emoji:"🎂"},
+    {date:"02.2026",title:"Anh cầu hôn em",body:"Một buổi tối Valentine, giữa ánh nến lung linh, anh quỳ xuống và đặt chiếc nhẫn vào tay em — em đã khóc và nói có.",emoji:"💍"},
+    {date:"04.2026",title:"Ngày trọng đại",body:"Hành trình 16 tháng đã dẫn chúng ta đến đây — nơi hai ta chính thức bắt đầu một chương mới, cùng nhau mãi mãi.",emoji:"💒"},
   ],
 };
 
@@ -698,52 +702,324 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 .on-photo{text-shadow:0 1px 4px rgba(0,0,0,.95),0 0 14px rgba(0,0,0,.8),0 2px 10px rgba(0,0,0,.9);}
 .hdiv{height:4px;background:linear-gradient(90deg,transparent,#631717,transparent);}
 
-/* ══ FLIP CLOCK COUNTDOWN ══ */
+/* ══════════════════════════════════════════
+   FLIP CLOCK — Đồng hồ đếm ngược 3D
+   ══════════════════════════════════════════ */
 .flip-clock{
   display:flex;align-items:center;justify-content:center;
-  gap:6px;padding:20px 0 8px;
+  gap:8px;padding:20px 10px 14px;
 }
-.flip-unit{display:flex;flex-direction:column;align-items:center;gap:4px;}
-.flip-cards{position:relative;width:52px;height:60px;}
-.flip-card{
-  width:52px;height:28px;
-  background:linear-gradient(180deg,#4a0e1e 0%,#4a0e1e 49%,#3a0818 51%,#3a0818 100%);
-  border-radius:4px;
-  display:flex;align-items:center;justify-content:center;
-  font-family:'Cinzel',serif;font-size:22px;font-weight:600;
-  color:#fff;
-  position:absolute;
+.flip-unit{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+}
+/* Card wrapper — chiều cao cố định, không bao giờ bị khuất */
+.flip-card-wrap{
+  position:relative;
+  width:62px;height:76px;
+  border-radius:8px;
   overflow:hidden;
-  box-shadow:0 2px 6px rgba(0,0,0,.35);
+  box-shadow:0 4px 16px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.08);
+}
+/* Nền card */
+.flip-card-bg{
+  position:absolute;inset:0;
+  background:linear-gradient(180deg,#4a0e1e 0%,#4a0e1e 49.5%,rgba(0,0,0,.25) 49.5%,#3a0810 50%,#2d0a12 100%);
+}
+/* Đường kẻ giữa */
+.flip-card-bg::after{
+  content:'';position:absolute;
+  top:calc(50% - 1px);left:0;right:0;height:2px;
+  background:rgba(0,0,0,.5);
+  z-index:3;
+}
+/* Số hiển thị — căn giữa tuyệt đối */
+.flip-num{
+  position:absolute;
+  top:50%;left:0;right:0;
+  transform:translateY(-50%);
+  text-align:center;
+  font-family:'Cinzel',serif;
+  font-size:32px;font-weight:700;
+  color:#fff;
+  line-height:1;
+  z-index:2;
+  text-shadow:0 2px 8px rgba(0,0,0,.5);
+  letter-spacing:-.02em;
+  /* Đảm bảo số luôn hiện full */
+  padding:0;margin:0;
+  display:flex;align-items:center;justify-content:center;
+  height:100%;width:100%;
+}
+/* Overlay bóng cho cảm giác 3D */
+.flip-card-top-shade{
+  position:absolute;top:0;left:0;right:0;height:50%;
+  background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(0,0,0,.02));
+  z-index:1;border-radius:8px 8px 0 0;
+  pointer-events:none;
+}
+.flip-card-bot-shade{
+  position:absolute;bottom:0;left:0;right:0;height:50%;
+  background:linear-gradient(0deg,rgba(0,0,0,.15),transparent);
+  z-index:1;border-radius:0 0 8px 8px;
+  pointer-events:none;
+}
+/* Flap animation */
+.flip-flap{
+  position:absolute;top:0;left:0;right:0;height:50%;
+  background:linear-gradient(180deg,#4a0e1e,#3d1015);
+  border-radius:8px 8px 0 0;
+  overflow:hidden;
+  z-index:4;
   transform-origin:bottom center;
+  transform:rotateX(0deg);
   backface-visibility:hidden;
 }
-.flip-card.top{top:0;border-bottom:1px solid rgba(0,0,0,.35);}
-.flip-card.bot{top:32px;border-top:1px solid rgba(255,255,255,.08);}
-.flip-card.anim-top{
-  transform-origin:bottom center;
-  animation:flipTop .3s ease-in forwards;
+.flip-flap.animate{
+  animation:flapDown .35s ease-in forwards;
 }
-.flip-card.anim-bot{
-  transform-origin:top center;
-  animation:flipBot .3s ease-out forwards;
-  animation-delay:.3s;
-}
-@keyframes flipTop{
-  0%{transform:rotateX(0);}
+@keyframes flapDown{
+  0%  {transform:rotateX(0deg);}
   100%{transform:rotateX(-90deg);}
 }
-@keyframes flipBot{
-  0%{transform:rotateX(90deg);}
-  100%{transform:rotateX(0);}
+.flip-flap2{
+  position:absolute;bottom:0;left:0;right:0;height:50%;
+  background:linear-gradient(180deg,#3a0810,#2d0a12);
+  border-radius:0 0 8px 8px;
+  overflow:hidden;
+  z-index:4;
+  transform-origin:top center;
+  transform:rotateX(90deg);
+  backface-visibility:hidden;
 }
+.flip-flap2.animate{
+  animation:flapUp .35s ease-out .35s forwards;
+}
+@keyframes flapUp{
+  0%  {transform:rotateX(90deg);}
+  100%{transform:rotateX(0deg);}
+}
+.flip-flap-num{
+  position:absolute;top:0;left:0;right:0;bottom:0;
+  display:flex;align-items:flex-end;justify-content:center;
+  padding-bottom:4px;
+  font-family:'Cinzel',serif;font-size:32px;font-weight:700;
+  color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.5);
+  letter-spacing:-.02em;
+}
+.flip-flap2 .flip-flap-num{
+  align-items:flex-start;padding-bottom:0;padding-top:4px;
+}
+/* Separator */
 .flip-sep{
-  font-size:28px;font-weight:700;color:rgba(255,180,160,.6);
-  line-height:1;margin-top:-8px;font-family:'Cinzel',serif;
+  font-size:26px;font-weight:700;
+  color:rgba(255,160,140,.45);
+  line-height:1;margin-bottom:18px;
+  font-family:'Cinzel',serif;
+  animation:sepBlink 1s ease-in-out infinite;
 }
+@keyframes sepBlink{0%,100%{opacity:.4;}50%{opacity:.9;}}
+/* Label */
 .flip-label{
-  font-size:9px;letter-spacing:.2em;text-transform:uppercase;
-  color:rgba(255,180,160,.65);font-family:'Quicksand',sans-serif;
+  font-size:8.5px;letter-spacing:.24em;text-transform:uppercase;
+  color:rgba(255,170,150,.55);font-family:'Quicksand',sans-serif;
+  font-weight:600;white-space:nowrap;
+}
+
+/* ══════════════════════════════════════════
+   ROAD STORY — Hành trình tình yêu dạng đường ô tô
+   ══════════════════════════════════════════ */
+.road-wrap{
+  padding:0;background:#fdf7f7;
+  overflow:hidden;position:relative;
+}
+/* Nền trời gradient */
+.road-sky{
+  position:absolute;top:0;left:0;right:0;height:60%;
+  background:linear-gradient(180deg,#fde8f0 0%,#fdf0f5 60%,#fdf7f7 100%);
+  pointer-events:none;
+}
+/* Scroll container ngang */
+.road-scroll{
+  overflow-x:auto;overflow-y:hidden;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+  padding:30px 20px 20px;
+  position:relative;
+  cursor:grab;
+  min-height:340px;
+}
+.road-scroll::-webkit-scrollbar{display:none;}
+.road-scroll:active{cursor:grabbing;}
+/* SVG road path */
+.road-svg{
+  position:absolute;
+  top:0;left:0;
+  pointer-events:none;
+}
+/* Inner content */
+.road-inner{
+  display:flex;
+  align-items:flex-end;
+  gap:0;
+  position:relative;
+  min-width:max-content;
+  height:280px;
+}
+/* Segment giữa 2 milestone */
+.road-seg{
+  width:130px;flex-shrink:0;
+  position:relative;
+  display:flex;align-items:center;justify-content:center;
+}
+/* Đường ô tô */
+.road-lane{
+  position:absolute;
+  height:28px;
+  left:0;right:0;
+  top:50%;transform:translateY(-50%);
+  background:#d4b8a8;
+  border-top:2px solid #c8a898;
+  border-bottom:2px solid #c8a898;
+}
+/* Vạch kẻ giữa đường */
+.road-dash{
+  position:absolute;
+  height:3px;top:50%;transform:translateY(-50%);
+  left:10%;right:10%;
+  background:repeating-linear-gradient(90deg,
+    rgba(255,255,255,.7) 0,rgba(255,255,255,.7) 16px,
+    transparent 16px,transparent 28px
+  );
+}
+/* Lề đường */
+.road-shoulder{
+  position:absolute;left:0;right:0;
+  height:8px;background:#c8b090;
+}
+.road-shoulder.top{top:calc(50% - 18px);}
+.road-shoulder.bot{bottom:calc(50% - 18px);}
+/* Cây bên đường */
+.road-tree{
+  position:absolute;font-size:14px;
+  pointer-events:none;
+  animation:treeWave 3s ease-in-out infinite;
+}
+@keyframes treeWave{0%,100%{transform:rotate(-2deg);}50%{transform:rotate(2deg);}}
+
+/* Milestone — điểm dừng */
+.milestone{
+  flex-shrink:0;
+  width:120px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  position:relative;
+}
+/* Card milestone — xen kẽ trên/dưới */
+.milestone.above .ms-card{
+  position:absolute;
+  bottom:calc(50% + 50px);
+  left:50%;transform:translateX(-50%);
+}
+.milestone.below .ms-card{
+  position:absolute;
+  top:calc(50% + 50px);
+  left:50%;transform:translateX(-50%);
+}
+/* Icon tại điểm dừng */
+.ms-stop{
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  z-index:10;
+  display:flex;flex-direction:column;align-items:center;
+  gap:3px;
+}
+.ms-icon-wrap{
+  width:48px;height:48px;border-radius:50%;
+  background:linear-gradient(135deg,#631717,#9a2a2a);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;
+  box-shadow:
+    0 0 0 4px rgba(99,23,23,.12),
+    0 0 0 8px rgba(99,23,23,.06),
+    0 3px 12px rgba(99,23,23,.45);
+  border:2px solid rgba(255,180,160,.3);
+  transition:transform .3s;
+}
+.ms-icon-wrap:hover{transform:scale(1.1);}
+/* Cột biển báo */
+.ms-post{
+  width:3px;height:32px;
+  background:linear-gradient(180deg,#8a6050,#6a4030);
+  border-radius:1px;
+  box-shadow:1px 0 3px rgba(0,0,0,.15);
+}
+.ms-post.above{margin-top:2px;}
+.ms-post.below{margin-bottom:2px;order:-1;}
+/* Card nội dung */
+.ms-card{
+  width:110px;
+  background:#fff;
+  border:1px solid rgba(99,23,23,.12);
+  border-radius:10px;
+  padding:8px 10px;
+  box-shadow:0 3px 14px rgba(99,23,23,.1),0 1px 4px rgba(0,0,0,.06);
+  transition:transform .25s,box-shadow .25s;
+  white-space:normal;
+  text-align:center;
+}
+.ms-card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 8px 24px rgba(99,23,23,.18);
+}
+.ms-date{
+  font-size:8px;font-weight:700;letter-spacing:.16em;
+  text-transform:uppercase;color:#9a2a2a;
+  font-family:'Quicksand',sans-serif;margin-bottom:2px;
+}
+.ms-title{
+  font-family:'Cormorant Garamond',serif;font-style:italic;
+  font-size:12.5px;font-weight:700;color:#3a0e18;
+  line-height:1.3;margin-bottom:3px;
+}
+.ms-body{
+  font-size:9px;color:#8a5050;
+  font-family:'Quicksand',sans-serif;
+  line-height:1.5;
+}
+/* Ô tô chạy trên đường */
+.road-car{
+  position:absolute;
+  top:50%;
+  font-size:20px;
+  transform:translateY(-50%);
+  z-index:8;
+  animation:carRun 12s linear infinite;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.3));
+}
+@keyframes carRun{
+  0%  {left:-40px;opacity:0;}
+  4%  {opacity:1;}
+  96% {opacity:1;}
+  100%{left:calc(100% + 20px);opacity:0;}
+}
+/* Mây trang trí */
+.road-cloud{
+  position:absolute;top:20px;
+  font-size:18px;opacity:.35;
+  animation:cloudDrift linear infinite;
+}
+@keyframes cloudDrift{
+  0%  {transform:translateX(0);}
+  100%{transform:translateX(80px);}
+}
+/* Scroll hint */
+.road-hint{
+  text-align:center;padding:4px 0 12px;
+  font-size:9px;letter-spacing:.2em;
+  color:rgba(99,23,23,.35);font-family:'Quicksand',sans-serif;
+  animation:floatY 2.2s ease-in-out infinite;
 }
 
 /* ══ MINI MAP ══ */
@@ -863,79 +1139,212 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 .schedule-title{font-size:12px;font-weight:700;color:#2a1010;margin-bottom:1px;}
 .schedule-place{font-size:10.5px;color:#9a6060;}
 
-/* ══ LOVE STORY TIMELINE ══ */
-.love-wrap{padding:8px 0 4px;}
-.love-item{
-  display:flex;gap:0;
+/* ══ LOVE STORY — Hành trình chuyến xe ══ */
+/* Layout: dải đường chạy ngang giữa, station xen kẽ trên/dưới */
+.journey-wrap{
+  padding:0 0 8px;
+  overflow:hidden;
   position:relative;
-  padding:0 16px 0 0;
 }
-/* Đường dọc */
-.love-item::before{
-  content:'';
-  position:absolute;left:50%;top:0;bottom:0;
-  width:2px;
-  background:linear-gradient(180deg,rgba(99,23,23,.12),rgba(99,23,23,.25),rgba(99,23,23,.12));
-  transform:translateX(-50%);
-  z-index:0;
+/* Tiêu đề section hành trình */
+.journey-header{
+  text-align:center;
+  padding:22px 16px 0;
+  background:#fdf7f7;
+  position:relative;
 }
-.love-item:last-child::before{display:none;}
-/* Node trung tâm */
-.love-node{
-  position:absolute;left:50%;top:22px;
-  transform:translate(-50%,-50%);
-  width:36px;height:36px;
+.journey-header::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,transparent,#631717,transparent);
+}
+
+/* Track đường ray ngang */
+.journey-track{
+  position:relative;
+  padding:16px 0 20px;
+  background:#fdf7f7;
+  overflow:visible;
+}
+/* Đường ray nằm ngang */
+.journey-rail{
+  position:absolute;
+  top:50%;left:20px;right:20px;
+  height:4px;
+  background:linear-gradient(90deg,
+    transparent,
+    rgba(99,23,23,.15) 5%,
+    rgba(99,23,23,.35) 50%,
+    rgba(99,23,23,.15) 95%,
+    transparent
+  );
+  transform:translateY(-50%);
+}
+/* Thanh ray chi tiết */
+.journey-rail::before{
+  content:'';position:absolute;top:-2px;left:0;right:0;
+  height:2px;background:rgba(99,23,23,.12);
+}
+.journey-rail::after{
+  content:'';position:absolute;bottom:-2px;left:0;right:0;
+  height:2px;background:rgba(99,23,23,.12);
+}
+/* Thanh gỗ ngang trên ray */
+.rail-tie{
+  position:absolute;top:50%;
+  width:3px;height:20px;
+  background:rgba(130,50,30,.2);
+  border-radius:1px;
+  transform:translateY(-50%);
+}
+
+/* Wrapper scroll ngang cho mobile */
+.journey-scroll{
+  overflow-x:auto;
+  overflow-y:visible;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+  padding:0 12px;
+  cursor:grab;
+}
+.journey-scroll::-webkit-scrollbar{display:none;}
+.journey-scroll:active{cursor:grabbing;}
+
+/* Container nội dung timeline */
+.journey-inner{
+  display:flex;
+  align-items:center;
+  gap:0;
+  position:relative;
+  padding:0;
+  min-width:max-content;
+}
+
+/* ── Station = 1 điểm dừng ── */
+.station{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  position:relative;
+  flex-shrink:0;
+  width:140px;
+}
+/* Station trên (odd) */
+.station.top .station-card{
+  order:-1;margin-bottom:10px;
+}
+.station.top .station-icon{order:0;}
+.station.top .station-connector{
+  order:0;height:30px;
+  background:linear-gradient(180deg,rgba(99,23,23,.08),rgba(99,23,23,.25));
+}
+/* Station dưới (even) */
+.station.bot .station-card{
+  order:1;margin-top:10px;
+}
+.station.bot .station-icon{order:0;}
+.station.bot .station-connector{
+  order:0;height:30px;
+  background:linear-gradient(0deg,rgba(99,23,23,.08),rgba(99,23,23,.25));
+}
+
+/* Đường nối từ icon → đường ray */
+.station-connector{
+  width:2px;flex-shrink:0;
+}
+
+/* Icon station */
+.station-icon{
+  width:44px;height:44px;border-radius:50%;flex-shrink:0;
   background:linear-gradient(135deg,#631717,#9a2a2a);
-  border-radius:50%;
   display:flex;align-items:center;justify-content:center;
-  font-size:15px;z-index:1;
-  box-shadow:0 2px 10px rgba(99,23,23,.35),0 0 0 4px rgba(99,23,23,.1);
+  font-size:18px;z-index:2;
+  box-shadow:
+    0 0 0 4px rgba(99,23,23,.12),
+    0 0 0 8px rgba(99,23,23,.06),
+    0 3px 10px rgba(99,23,23,.4);
+  border:2px solid rgba(255,180,160,.3);
+  transition:transform .3s;
 }
-/* Card trái / phải xen kẽ */
-.love-card{
-  width:calc(50% - 24px);
+.station-icon:hover{transform:scale(1.1);}
+
+/* Card nội dung */
+.station-card{
+  width:130px;
   background:#fff;
   border:1px solid rgba(99,23,23,.12);
   border-radius:10px;
-  padding:11px 12px;
+  padding:10px 11px;
+  box-shadow:0 3px 12px rgba(99,23,23,.1),0 1px 3px rgba(0,0,0,.06);
   position:relative;
-  box-shadow:0 2px 10px rgba(99,23,23,.08);
+  transition:box-shadow .3s,transform .3s;
 }
-.love-card.left{margin-right:auto;margin-left:16px;margin-bottom:28px;}
-.love-card.right{margin-left:auto;margin-right:16px;margin-bottom:28px;}
-/* Mũi tên card */
-.love-card.left::after{
-  content:'';position:absolute;right:-8px;top:18px;
+.station-card:hover{
+  box-shadow:0 6px 20px rgba(99,23,23,.18);
+  transform:translateY(-2px);
+}
+/* Mũi tên card xuống/lên */
+.station.top .station-card::after{
+  content:'';position:absolute;bottom:-7px;left:50%;
+  transform:translateX(-50%);
+  border:7px solid transparent;
+  border-top:7px solid #fff;
+}
+.station.top .station-card::before{
+  content:'';position:absolute;bottom:-9px;left:50%;
+  transform:translateX(-50%);
   border:8px solid transparent;
-  border-left:8px solid #fff;
+  border-top:8px solid rgba(99,23,23,.12);
 }
-.love-card.left::before{
-  content:'';position:absolute;right:-10px;top:17px;
-  border:9px solid transparent;
-  border-left:9px solid rgba(99,23,23,.12);
+.station.bot .station-card::after{
+  content:'';position:absolute;top:-7px;left:50%;
+  transform:translateX(-50%);
+  border:7px solid transparent;
+  border-bottom:7px solid #fff;
 }
-.love-card.right::after{
-  content:'';position:absolute;left:-8px;top:18px;
+.station.bot .station-card::before{
+  content:'';position:absolute;top:-9px;left:50%;
+  transform:translateX(-50%);
   border:8px solid transparent;
-  border-right:8px solid #fff;
+  border-bottom:8px solid rgba(99,23,23,.12);
 }
-.love-card.right::before{
-  content:'';position:absolute;left:-10px;top:17px;
-  border:9px solid transparent;
-  border-right:9px solid rgba(99,23,23,.12);
+.station-date{
+  font-size:8px;font-weight:700;letter-spacing:.18em;
+  text-transform:uppercase;color:#9a2a2a;
+  font-family:'Quicksand',sans-serif;margin-bottom:3px;
 }
-.love-date{
-  font-size:9px;letter-spacing:.18em;text-transform:uppercase;
-  color:#9a2a2a;font-family:'Quicksand',sans-serif;font-weight:700;
-  margin-bottom:3px;
-}
-.love-title{
+.station-title{
   font-family:'Cormorant Garamond',serif;font-style:italic;
-  font-size:14px;font-weight:700;color:#3a0e18;margin-bottom:4px;
+  font-size:13px;font-weight:700;color:#3a0e18;
+  line-height:1.3;margin-bottom:4px;
 }
-.love-body{
-  font-size:10.5px;color:#6a4040;font-family:'Quicksand',sans-serif;
-  line-height:1.6;
+.station-body{
+  font-size:9.5px;color:#7a4040;
+  font-family:'Quicksand',sans-serif;
+  line-height:1.55;
+}
+
+/* ── Tàu/xe đang chạy ── */
+.journey-train{
+  position:absolute;
+  top:50%;transform:translateY(-50%);
+  font-size:22px;
+  z-index:5;
+  animation:trainMove 8s linear infinite;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.3));
+}
+@keyframes trainMove{
+  0%  {left:-40px;opacity:0;}
+  5%  {opacity:1;}
+  95% {opacity:1;}
+  100%{left:calc(100% + 10px);opacity:0;}
+}
+
+/* Scroll hint */
+.journey-hint{
+  text-align:center;padding:4px 0 10px;
+  font-size:9px;letter-spacing:.2em;
+  color:rgba(99,23,23,.4);font-family:'Quicksand',sans-serif;
+  animation:floatY 2s ease-in-out infinite;
 }
 .sec-dark{background:linear-gradient(145deg,#3a0e18,#3d1010);}
 .sec-dark2{background:linear-gradient(145deg,#2a0808,#631717);}
@@ -1568,74 +1977,248 @@ function CommentBox() {
   );
 }
 
-// ══════════════════════════════════════════════════════
-// FLIP CLOCK — 3D countdown đồng hồ lật
-// ══════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════
+// FLIP CLOCK — Đồng hồ lật 3D, số không bao giờ bị khuất
+// ════════════════════════════════════════════════════
 function FlipDigit({ value }) {
-  const prev  = useRef(value);
-  const [flip, setFlip] = useState(false);
-  const [show, setShow] = useState({ cur: value, next: value });
+  const prev    = useRef(value);
+  const [cur,  setCur]  = useState(String(value).padStart(2,"0"));
+  const [next, setNext] = useState(String(value).padStart(2,"0"));
+  const [key,  setKey]  = useState(0);
+  const [anim, setAnim] = useState(false);
 
   useEffect(() => {
-    if (value === prev.current) return;
-    setShow({ cur: prev.current, next: value });
-    setFlip(true);
+    const v = String(value).padStart(2,"0");
+    const p = String(prev.current).padStart(2,"0");
+    if (v === p) return;
+    setNext(v);
+    setAnim(true);
+    setKey(k => k+1);
     const t = setTimeout(() => {
-      setShow({ cur: value, next: value });
-      setFlip(false);
+      setCur(v);
+      setAnim(false);
       prev.current = value;
-    }, 620);
+    }, 720);
     return () => clearTimeout(t);
   }, [value]);
 
-  const s = String(show.cur).padStart(2, "0");
-  const n = String(show.next).padStart(2, "0");
   return (
-    <div className="flip-cards">
-      {/* Top half — số cũ */}
-      <div className={`flip-card top${flip ? " anim-top" : ""}`}>
-        <span style={{ transform:"translateY(-14px)", display:"block" }}>{s}</span>
-      </div>
-      {/* Bottom half — số mới */}
-      <div className={`flip-card bot${flip ? " anim-bot" : ""}`}>
-        <span style={{ transform:"translateY(14px)", display:"block" }}>{n}</span>
-      </div>
+    <div className="flip-card-wrap">
+      {/* Nền gradient + đường kẻ giữa */}
+      <div className="flip-card-bg"/>
+      {/* Bóng đổ chiều sâu */}
+      <div className="flip-card-top-shade"/>
+      <div className="flip-card-bot-shade"/>
+      {/* SỐ HIỆN TẠI — luôn ở giữa, không bao giờ bị khuất */}
+      <div className="flip-num">{cur}</div>
+      {/* Flap trên: hiện số cũ, lật xuống */}
+      {anim && (
+        <div key={`top-${key}`} className="flip-flap animate">
+          <div className="flip-flap-num">{cur}</div>
+        </div>
+      )}
+      {/* Flap dưới: hiện số mới, lật lên */}
+      {anim && (
+        <div key={`bot-${key}`} className="flip-flap2 animate">
+          <div className="flip-flap-num">{next}</div>
+        </div>
+      )}
     </div>
   );
 }
 
 function FlipClock({ dateStr }) {
   const cd = useCd(dateStr);
-
   if (cd.past) return (
-    <div style={{ textAlign:"center", padding:"1.5rem 0" }}>
-      <p style={{ fontFamily:"'Cormorant Garamond',serif", fontStyle:"italic",
-        fontSize:"22px", color:"rgba(255,210,200,.9)" }}>
+    <div style={{textAlign:"center",padding:"1.5rem 0"}}>
+      <p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
+        fontSize:"24px",color:"rgba(255,210,200,.92)"}}>
         🎉 Hôm nay là ngày trọng đại!
       </p>
     </div>
   );
-
   const units = [
-    { v: cd.d,  label: "Ngày" },
-    { v: cd.h,  label: "Giờ" },
-    { v: cd.m,  label: "Phút" },
-    { v: cd.s,  label: "Giây" },
+    {v:cd.d,  label:"Ngày"},
+    {v:cd.h,  label:"Giờ"},
+    {v:cd.m,  label:"Phút"},
+    {v:cd.s,  label:"Giây"},
   ];
-
   return (
     <div className="flip-clock">
-      {units.map((u, i) => (
-        <div key={u.label} style={{ display:"flex", alignItems:"center", gap:"6px" }}>
+      {units.map((u,i) => (
+        <div key={u.label} style={{display:"flex",alignItems:"center",gap:"0"}}>
           <div className="flip-unit">
-            <FlipDigit value={u.v} />
+            <FlipDigit value={u.v}/>
             <span className="flip-label">{u.label}</span>
           </div>
-          {i < units.length - 1 && (
-            <span className="flip-sep" style={{ opacity: i === 0 ? 0 : 1 }}>:</span>
-          )}
+          {i < units.length-1 && <span className="flip-sep">:</span>}
         </div>
       ))}
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════
+// ROAD STORY — Hành trình tình yêu dạng đường ô tô
+// Milestones xen kẽ trên/dưới đường, có cây, mây, xe chạy
+// ════════════════════════════════════════════════════
+function LoveStory({ stories = [] }) {
+  const scrollRef = useRef(null);
+  const drag      = useRef({on:false,sx:0,sl:0});
+
+  const onMD = e => {
+    drag.current = {on:true, sx:e.pageX - scrollRef.current.offsetLeft, sl:scrollRef.current.scrollLeft};
+  };
+  const onMM = e => {
+    if (!drag.current.on) return;
+    e.preventDefault();
+    scrollRef.current.scrollLeft = drag.current.sl - (e.pageX - scrollRef.current.offsetLeft - drag.current.sx);
+  };
+  const onMU = () => { drag.current.on = false; };
+
+  if (!stories.length) return null;
+
+  // Vị trí cây trang trí ngẫu nhiên nhưng cố định
+  const TREES = [
+    {pos:"8%",  side:"top",  emoji:"🌳", delay:"0s",   dur:"3.2s"},
+    {pos:"22%", side:"bot",  emoji:"🌲", delay:"0.5s", dur:"2.8s"},
+    {pos:"38%", side:"top",  emoji:"🌸", delay:"1s",   dur:"3.5s"},
+    {pos:"52%", side:"bot",  emoji:"🌳", delay:"0.3s", dur:"3s"},
+    {pos:"67%", side:"top",  emoji:"🌲", delay:"0.8s", dur:"2.9s"},
+    {pos:"81%", side:"bot",  emoji:"🌺", delay:"1.2s", dur:"3.3s"},
+    {pos:"94%", side:"top",  emoji:"🌳", delay:"0.1s", dur:"3.1s"},
+  ];
+  // Mây
+  const CLOUDS = [
+    {left:"5%",  top:"18px", dur:"20s", delay:"0s"},
+    {left:"35%", top:"8px",  dur:"25s", delay:"5s"},
+    {left:"65%", top:"22px", dur:"18s", delay:"2s"},
+    {left:"85%", top:"10px", dur:"22s", delay:"8s"},
+  ];
+
+  // Tổng chiều rộng: mỗi milestone 120px + segment 130px ở giữa
+  const totalW = stories.length * 120 + (stories.length - 1) * 130 + 80;
+
+  return (
+    <div className="road-wrap">
+      {/* Nền trời */}
+      <div className="road-sky"/>
+
+      {/* Header */}
+      <div style={{textAlign:"center",padding:"20px 16px 0",position:"relative",zIndex:2}}>
+        <Rv dir="u" delay={0}>
+          <p style={{fontFamily:"'Quicksand',sans-serif",fontSize:"9.5px",fontWeight:700,
+            letterSpacing:".28em",textTransform:"uppercase",color:"rgba(99,23,23,.4)",marginBottom:"5px"}}>
+            CHUYẾN HÀNH TRÌNH
+          </p>
+          <span style={{display:"inline-block",borderTop:"1px solid rgba(99,23,23,.25)",
+            paddingTop:"6px",fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
+            fontSize:"24px",color:"#631717"}}>
+            Con Đường Tình Yêu
+          </span>
+        </Rv>
+      </div>
+
+      {/* Scroll container */}
+      <div className="road-scroll" ref={scrollRef}
+        onMouseDown={onMD} onMouseMove={onMM}
+        onMouseUp={onMU} onMouseLeave={onMU}>
+
+        {/* SVG đường cong — tạo cảm giác đường uốn khúc */}
+        <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,pointerEvents:"none",zIndex:0}}>
+
+          {/* Mây */}
+          {CLOUDS.map((cl,i) => (
+            <div key={i} className="road-cloud"
+              style={{left:cl.left,top:cl.top,animationDuration:cl.dur,animationDelay:cl.delay}}>
+              ☁️
+            </div>
+          ))}
+        </div>
+
+        <div className="road-inner" style={{width:`${totalW}px`}}>
+
+          {stories.map((s, i) => {
+            const isAbove = i % 2 === 0;
+            // Tính vị trí Y của card dựa trên trên/dưới
+            const cardTopOffset = isAbove ? "auto" : "calc(50% + 54px)";
+            const cardBotOffset = isAbove ? "calc(50% + 54px)" : "auto";
+
+            return (
+              <React.Fragment key={i}>
+                {/* Milestone */}
+                <div className={`milestone ${isAbove?"above":"below"}`}
+                  style={{height:"280px",position:"relative",width:"120px",flexShrink:0}}>
+
+                  {/* Đường ô tô ngang qua milestone */}
+                  <div style={{position:"absolute",top:"50%",left:"-5px",right:"-5px",
+                    height:"28px",transform:"translateY(-50%)",
+                    background:"#d4b8a8",
+                    borderTop:"2px solid #c8a898",borderBottom:"2px solid #c8a898",
+                    zIndex:1}}>
+                    <div style={{position:"absolute",top:"50%",left:0,right:0,
+                      height:"3px",transform:"translateY(-50%)",
+                      background:"repeating-linear-gradient(90deg,rgba(255,255,255,.7) 0,rgba(255,255,255,.7) 14px,transparent 14px,transparent 24px)"}}/>
+                  </div>
+
+                  {/* Cây bên đường */}
+                  {TREES[i % TREES.length] && (
+                    <div style={{
+                      position:"absolute",
+                      [isAbove?"bottom":"top"]:"calc(50% + 22px)",
+                      left:"15px",
+                      fontSize:"16px",zIndex:2,
+                      animation:`treeWave ${TREES[i%TREES.length].dur} ease-in-out ${TREES[i%TREES.length].delay} infinite`,
+                    }}>
+                      {TREES[i % TREES.length].emoji}
+                    </div>
+                  )}
+
+                  {/* Biển hiệu điểm dừng */}
+                  <div className="ms-stop" style={{zIndex:5}}>
+                    {/* Cột biển báo */}
+                    {isAbove && <div className="ms-post above"/>}
+                    {/* Icon */}
+                    <div className="ms-icon-wrap">{s.emoji || "❤️"}</div>
+                    {!isAbove && <div className="ms-post below"/>}
+                  </div>
+
+                  {/* Card nội dung */}
+                  <div className="ms-card" style={{
+                    position:"absolute",
+                    top: isAbove ? "auto" : "calc(50% + 56px)",
+                    bottom: isAbove ? "calc(50% + 56px)" : "auto",
+                    left:"50%",
+                    transform:"translateX(-50%)",
+                    zIndex:6,
+                  }}>
+                    <div className="ms-date">{s.date}</div>
+                    <div className="ms-title">{s.title}</div>
+                    {s.body && <div className="ms-body">{s.body}</div>}
+                  </div>
+                </div>
+
+                {/* Đoạn đường giữa các milestone */}
+                {i < stories.length - 1 && (
+                  <div className="road-seg" style={{height:"280px",position:"relative",width:"130px",flexShrink:0}}>
+                    <div className="road-lane">
+                      <div className="road-dash"/>
+                    </div>
+                    <div className="road-shoulder top"/>
+                    <div className="road-shoulder bot"/>
+                  </div>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+
+        {/* Ô tô chạy */}
+        <div className="road-car">🚗</div>
+      </div>
+
+      {/* Scroll hint */}
+      <div className="road-hint">← Vuốt để theo hành trình →</div>
     </div>
   );
 }
@@ -1729,31 +2312,99 @@ function MiniMap({ d }) {
 }
 
 // ══════════════════════════════════════════════════════
-// LOVE STORY TIMELINE — Câu chuyện tình yêu
+// LOVE STORY — Hành trình chuyến xe, cuộn ngang
+// Station xen kẽ trên/dưới đường ray
 // ══════════════════════════════════════════════════════
 function LoveStory({ stories = [] }) {
+  const scrollRef = useRef(null);
+  const isDragging = useRef(false);
+  const startX    = useRef(0);
+  const scrollL   = useRef(0);
+
+  // Drag-to-scroll ngang
+  const onMD = (e) => {
+    isDragging.current = true;
+    startX.current  = e.pageX - scrollRef.current.offsetLeft;
+    scrollL.current = scrollRef.current.scrollLeft;
+  };
+  const onMM = (e) => {
+    if (!isDragging.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    scrollRef.current.scrollLeft = scrollL.current - (x - startX.current);
+  };
+  const onMU = () => { isDragging.current = false; };
+
   if (!stories.length) return null;
 
+  // Số lượng tie (thanh gỗ ngang) trên ray
+  const ties = Array.from({length: Math.max(20, stories.length*3)}, (_,i) => i);
+
   return (
-    <div className="love-wrap">
-      {stories.map((s, i) => {
-        const isLeft = i % 2 === 0;
-        return (
-          <Rv key={i} dir={isLeft ? "r" : "l"} delay={0.05} style={{ position:"relative" }}>
-            {/* Item wrapper */}
-            <div className="love-item">
-              {/* Card */}
-              <div className={`love-card ${isLeft ? "left" : "right"}`}>
-                <div className="love-date">{s.date}</div>
-                <div className="love-title">{s.title}</div>
-                <div className="love-body">{s.body}</div>
-              </div>
-              {/* Node ở giữa */}
-              <div className="love-node">{s.emoji || "♥"}</div>
+    <div className="journey-wrap">
+      <Rv dir="u" delay={0}>
+        {/* Scroll container */}
+        <div className="journey-scroll" ref={scrollRef}
+          onMouseDown={onMD} onMouseMove={onMM}
+          onMouseUp={onMU} onMouseLeave={onMU}>
+
+          <div className="journey-inner" style={{
+            paddingTop:"120px",   /* không gian cho station trên */
+            paddingBottom:"120px",/* không gian cho station dưới */
+          }}>
+
+            {/* Đường ray ngang */}
+            <div style={{
+              position:"absolute",
+              top:"50%",left:0,right:0,
+              transform:"translateY(-50%)",
+              height:"6px",
+              background:"linear-gradient(90deg,transparent,rgba(99,23,23,.3) 3%,rgba(99,23,23,.45) 50%,rgba(99,23,23,.3) 97%,transparent)",
+              zIndex:0,
+            }}>
+              {/* Rail lines */}
+              <div style={{position:"absolute",top:0,left:0,right:0,height:"2px",background:"rgba(99,23,23,.15)"}}/>
+              <div style={{position:"absolute",bottom:0,left:0,right:0,height:"2px",background:"rgba(99,23,23,.15)"}}/>
+              {/* Thanh gỗ ngang */}
+              {ties.map((_, i) => (
+                <div key={i} className="rail-tie" style={{left:`${(i+.5)/(ties.length)*100}%`}}/>
+              ))}
             </div>
-          </Rv>
-        );
-      })}
+
+            {/* Icon tàu chạy */}
+            <div className="journey-train">🚂</div>
+
+            {/* Stations */}
+            {stories.map((s, i) => {
+              const isTop = i % 2 === 0;
+              return (
+                <div key={i} className={`station ${isTop ? "top" : "bot"}`}
+                  style={{zIndex:1}}>
+                  {/* Card */}
+                  <div className="station-card">
+                    <div className="station-date">{s.date}</div>
+                    <div className="station-title">{s.title}</div>
+                    <div className="station-body">{s.body}</div>
+                  </div>
+
+                  {/* Đường nối */}
+                  <div className="station-connector"/>
+
+                  {/* Icon node */}
+                  <div className="station-icon">{s.emoji || "❤️"}</div>
+
+                  {/* Đường nối xuống/lên đường ray */}
+                  <div className="station-connector"/>
+                </div>
+              );
+            })}
+
+          </div>
+        </div>
+
+        {/* Scroll hint */}
+        <div className="journey-hint">← Vuốt để xem hành trình →</div>
+      </Rv>
     </div>
   );
 }
@@ -2021,22 +2672,29 @@ export default function WeddingApp() {
         <Rv dir="u" delay={0.15}><p style={{fontSize:"11.5px",fontFamily:"'Quicksand',sans-serif",fontWeight:500,color:"#444",lineHeight:1.88,textAlign:"center"}}>{nl(d.sec_invite_body)}</p></Rv>
       </div>
 
-      {/* ═══ LOVE STORY TIMELINE ═══ */}
+      {/* ═══ LOVE STORY — Hành trình chuyến xe ═══ */}
       {Array.isArray(d.love_story)&&d.love_story.length>0&&(
         <>
-          <div style={{position:"relative",background:"#fdf7f7",padding:"22px 0 4px"}}>
-            <div style={{position:"absolute",top:0,left:0,right:0,height:"3px",background:"linear-gradient(90deg,transparent,#631717,transparent)"}}/>
-            <div style={{textAlign:"center",marginBottom:"12px",padding:"0 16px"}}>
+          <div style={{position:"relative",background:"#fdf7f7"}}>
+            <div style={{position:"absolute",top:0,left:0,right:0,height:"3px",
+              background:"linear-gradient(90deg,transparent,#631717,transparent)"}}/>
+            {/* Header */}
+            <div style={{textAlign:"center",padding:"22px 16px 0"}}>
               <Rv dir="u" delay={0}>
-                <span style={{display:"inline-block",borderTop:"1px solid rgba(99,23,23,.35)",paddingTop:"7px",
-                  fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:"26px",color:"#631717"}}>
+                <p style={{fontFamily:"'Quicksand',sans-serif",fontSize:"10px",fontWeight:700,
+                  letterSpacing:".28em",textTransform:"uppercase",color:"rgba(99,23,23,.45)",
+                  marginBottom:"6px"}}>CHUYẾN TÀU TÌNH YÊU</p>
+                <span style={{display:"inline-block",
+                  borderTop:"1px solid rgba(99,23,23,.3)",paddingTop:"6px",
+                  fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
+                  fontSize:"26px",color:"#631717",lineHeight:1.3}}>
                   Hành Trình Của Chúng Tôi
                 </span>
               </Rv>
               <Rv dir="u" delay={0.1}>
-                <p style={{fontSize:"10px",fontWeight:700,letterSpacing:".18em",textTransform:"uppercase",
-                  color:"#9a6060",fontFamily:"'Quicksand',sans-serif",marginTop:"4px"}}>
-                  OUR LOVE STORY
+                <p style={{fontSize:"11px",color:"rgba(99,23,23,.45)",marginTop:"6px",
+                  fontFamily:"'Quicksand',sans-serif",letterSpacing:".05em"}}>
+                  🚂 Vuốt để xem từng chặng đường...
                 </p>
               </Rv>
             </div>
@@ -2122,15 +2780,22 @@ export default function WeddingApp() {
         {/* Flip Clock bên dưới calendar */}
         <div style={{background:"linear-gradient(145deg,#3a0e18,#631717)",paddingBottom:"14px"}}>
           <Rv dir="u" delay={0.1}>
-            <p style={{textAlign:"center",paddingTop:"12px",fontSize:"10px",
-              letterSpacing:".25em",textTransform:"uppercase",
-              color:"rgba(255,190,180,.6)",fontFamily:"'Quicksand',sans-serif",fontWeight:600}}>
-              Đếm ngược ngày cưới
-            </p>
+            <div style={{textAlign:"center",paddingTop:"14px"}}>
+              <p style={{fontSize:"9.5px",letterSpacing:".28em",textTransform:"uppercase",
+                color:"rgba(255,175,155,.55)",fontFamily:"'Quicksand',sans-serif",fontWeight:600,
+                marginBottom:"2px"}}>
+                ĐANG ĐẾM NGƯỢC
+              </p>
+              <p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
+                fontSize:"16px",color:"rgba(255,200,185,.75)"}}>
+                đến ngày trọng đại
+              </p>
+            </div>
           </Rv>
           <Rv dir="s" delay={0.15}>
             <FlipClock dateStr={d.wedding_date}/>
           </Rv>
+          <div style={{height:"8px"}}/>
         </div>
       </div>
 
