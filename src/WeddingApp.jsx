@@ -1072,7 +1072,7 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 /* Tiêu đề section hành trình */
 .journey-header{
   text-align:center;
-  padding:22px 16px 0;
+  padding:22px 16px 20;
   background:#fdf7f7;
   position:relative;
 }
@@ -2039,7 +2039,7 @@ function LoveStory({ stories = [] }) {
   const ROAD_W   = 44;
   const n        = stories.length;
   const totalH   = n * SEG_H + 80;
-  const rowY     = (i) => 52 + i * SEG_H + SEG_H / 2;
+  const rowY     = (i) => 30 + i * SEG_H + SEG_H / 2;
 
   // Build path S-curve mượt (Cubic Bezier)
   let pathD = "";
@@ -2098,19 +2098,72 @@ function LoveStory({ stories = [] }) {
         </defs>
       </svg>
 
-      {/* Header */}
-      <div className="road3d-header">
-        <Rv dir="u" delay={0}>
-          <p style={{fontFamily:"'Quicksand',sans-serif",fontSize:"9.5px",fontWeight:700,
-            letterSpacing:".28em",textTransform:"uppercase",color:"rgba(99,23,23,.38)",marginBottom:"4px"}}>
+      {/* ── Ribbon Title — Dải ruy băng SVG đẳng cấp ── */}
+      <div style={{position:"relative",textAlign:"center",padding:"28px 0 8px",zIndex:2}}>
+        <svg viewBox="0 0 340 72" style={{width:"min(360px,92%)",height:"72px",overflow:"visible",
+          position:"absolute",top:"8px",left:"50%",transform:"translateX(-50%)",zIndex:0}}>
+          <defs>
+            <linearGradient id="ribG" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stopColor="#8a1a28"/>
+              <stop offset="45%"  stopColor="#631717"/>
+              <stop offset="100%" stopColor="#4a0e14"/>
+            </linearGradient>
+            <linearGradient id="ribShine" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stopColor="rgba(255,255,255,.18)"/>
+              <stop offset="100%" stopColor="rgba(255,255,255,0)"/>
+            </linearGradient>
+            <filter id="ribShadow">
+              <feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="rgba(80,10,20,.35)"/>
+            </filter>
+          </defs>
+
+          {/* Đuôi ruy băng trái */}
+          <path d="M 8,18 L 52,18 L 44,36 L 52,54 L 8,54 L 18,36 Z"
+            fill="url(#ribG)" filter="url(#ribShadow)"/>
+          {/* Bóng đuôi trái */}
+          <path d="M 8,18 L 52,18 L 44,36 L 52,54 L 8,54 L 18,36 Z"
+            fill="url(#ribShine)" opacity=".5"/>
+
+          {/* Đuôi ruy băng phải */}
+          <path d="M 332,18 L 288,18 L 296,36 L 288,54 L 332,54 L 322,36 Z"
+            fill="url(#ribG)" filter="url(#ribShadow)"/>
+          <path d="M 332,18 L 288,18 L 296,36 L 288,54 L 332,54 L 322,36 Z"
+            fill="url(#ribShine)" opacity=".5"/>
+
+          {/* Dải chính */}
+          <rect x="44" y="12" width="252" height="48" rx="4"
+            fill="url(#ribG)" filter="url(#ribShadow)"/>
+          {/* Shine trên */}
+          <rect x="44" y="12" width="252" height="24" rx="4"
+            fill="url(#ribShine)"/>
+          {/* Đường viền vàng */}
+          <rect x="44" y="12" width="252" height="48" rx="4"
+            fill="none" stroke="rgba(220,180,100,.35)" strokeWidth="1.5"/>
+          {/* Line trang trí trên/dưới */}
+          <line x1="58" y1="20" x2="282" y2="20"
+            stroke="rgba(255,200,150,.2)" strokeWidth="1"/>
+          <line x1="58" y1="52" x2="282" y2="52"
+            stroke="rgba(255,200,150,.2)" strokeWidth="1"/>
+
+          {/* Điểm trang trí hai đầu dải */}
+          <circle cx="58"  cy="36" r="4" fill="rgba(220,170,100,.5)"/>
+          <circle cx="282" cy="36" r="4" fill="rgba(220,170,100,.5)"/>
+        </svg>
+
+        {/* Chữ trên ribbon */}
+        <div style={{position:"relative",zIndex:1,padding:"4px 0 0"}}>
+          <p style={{fontSize:"8.5px",fontWeight:700,letterSpacing:".35em",
+            textTransform:"uppercase",color:"rgba(255,200,170,.6)",
+            fontFamily:"'Quicksand',sans-serif",marginBottom:"2px"}}>
             CON ĐƯỜNG TÌNH YÊU
           </p>
-          <span style={{display:"inline-block",borderTop:"1px solid rgba(99,23,23,.22)",
-            paddingTop:"6px",fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
-            fontSize:"24px",color:"#631717"}}>
+          <span style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
+            fontSize:"22px",fontWeight:700,color:"rgba(255,235,220,.97)",
+            textShadow:"0 1px 4px rgba(0,0,0,.4)",letterSpacing:".02em",
+            display:"block",lineHeight:1.2}}>
             Hành Trình Của Chúng Tôi
           </span>
-        </Rv>
+        </div>
       </div>
 
       {/* Canvas SVG */}
@@ -2683,25 +2736,7 @@ export default function WeddingApp() {
             <div style={{position:"absolute",top:0,left:0,right:0,height:"3px",
               background:"linear-gradient(90deg,transparent,#631717,transparent)"}}/>
             {/* Header */}
-            <div style={{textAlign:"center",padding:"22px 16px 0"}}>
-              <Rv dir="u" delay={0}>
-                <p style={{fontFamily:"'Quicksand',sans-serif",fontSize:"10px",fontWeight:700,
-                  letterSpacing:".28em",textTransform:"uppercase",color:"rgba(99,23,23,.45)",
-                  marginBottom:"6px"}}>CHUYẾN TÀU TÌNH YÊU</p>
-                <span style={{display:"inline-block",
-                  borderTop:"1px solid rgba(99,23,23,.3)",paddingTop:"6px",
-                  fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
-                  fontSize:"26px",color:"#631717",lineHeight:1.3}}>
-                  Hành Trình Của Chúng Tôi
-                </span>
-              </Rv>
-              <Rv dir="u" delay={0.1}>
-                <p style={{fontSize:"11px",color:"rgba(99,23,23,.45)",marginTop:"6px",
-                  fontFamily:"'Quicksand',sans-serif",letterSpacing:".05em"}}>
-                  🚂 Vuốt để xem từng chặng đường...
-                </p>
-              </Rv>
-            </div>
+            
             <LoveStory stories={d.love_story}/>
           </div>
           <div className="hdiv"/>
