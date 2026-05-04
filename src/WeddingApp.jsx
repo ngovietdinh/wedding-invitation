@@ -704,6 +704,21 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 .on-photo{text-shadow:0 1px 4px rgba(0,0,0,.95),0 0 14px rgba(0,0,0,.8),0 2px 10px rgba(0,0,0,.9);}
 .hdiv{height:4px;background:linear-gradient(90deg,transparent,#631717,transparent);}
 
+/* ── Cloud Title — tiêu đề dạng đám mây nghệ thuật ── */
+.cloud-title-wrap{
+  display:inline-flex;flex-direction:column;align-items:center;
+  position:relative;padding:0 8px;
+}
+.cloud-title-svg{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  pointer-events:none;overflow:visible;
+}
+.cloud-title-text{
+  position:relative;z-index:1;
+  padding:10px 24px 8px;
+  text-align:center;
+}
+
 /* ══════════════════════════════════════════
    FLIP CLOCK — Đồng hồ đếm ngược 3D
    ══════════════════════════════════════════ */
@@ -831,7 +846,7 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
    ROAD STORY 3D — Đường liên tục chữ S, perspective 3D
    ════════════════════════════════════════════════════ */
 .road3d-wrap{
-  background:linear-gradient(180deg,#fde8f0 0%,#fdf4f7 30%,#fef9fb 100%);
+  background:linear-gradient(180deg,#fdeef5 0%,#fdf4f8 30%,#fefafb 100%);
   padding:0;overflow:hidden;position:relative;
 }
 .road3d-header{
@@ -920,9 +935,14 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 /* ── Xe ô tô chạy dọc đường ── */
 @keyframes carDrive{
   0%  {offset-distance:0%;   opacity:0;}
-  3%  {opacity:1;}
-  97% {opacity:1;}
+  5%  {opacity:1;}
+  95% {opacity:1;}
   100%{offset-distance:100%; opacity:0;}
+}
+/* Xe nhỏ chạy theo đường S */
+.car-emoji{
+  offset-rotate:auto;         /* tự xoay theo hướng path */
+  will-change:offset-distance;
 }
 
 /* ══ MINI MAP ══ */
@@ -1966,204 +1986,329 @@ function FlipClock({ dateStr }) {
 // Milestones xen kẽ trên/dưới đường, có cây, mây, xe chạy
 // ════════════════════════════════════════════════════
 function LoveStory({ stories = [] }) {
+  const carRef   = useRef(null);   // ref tới <g> xe trong SVG
+  const pathRef  = useRef(null);   // ref tới path SVG để tính tọa độ
+  const rafRef   = useRef(null);
+  const pctRef   = useRef(0);
+
+  // Animate xe dọc path bằng RAF (hoạt động trên mọi browser/mobile)
+  useEffect(() => {
+    const DURATION = 22000; // ms một vòng
+    let start = null;
+
+    const tick = (ts) => {
+      if (!start) start = ts;
+      const elapsed = ts - start;
+      const pct     = (elapsed % DURATION) / DURATION; // 0→1
+
+      const pathEl = pathRef.current;
+      const carEl  = carRef.current;
+      if (pathEl && carEl) {
+        const len  = pathEl.getTotalLength();
+        const pt   = pathEl.getPointAtLength(pct * len);
+        const pt2  = pathEl.getPointAtLength(Math.min((pct + 0.005) * len, len));
+
+        // Góc nghiêng theo tiếp tuyến
+        const dx    = pt2.x - pt.x;
+        const dy    = pt2.y - pt.y;
+        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+        // Xe luôn nhìn theo hướng chạy, KHÔNG bao giờ lộn đầu
+        // Khi angle > 90 hoặc < -90 (đang đi ngược) → flip scaleX
+        const goingLeft = dx < 0;
+        const scaleX    = goingLeft ? -1 : 1;
+        const drawAngle = goingLeft ? angle + 180 : angle;
+
+        carEl.setAttribute("transform",
+          `translate(${pt.x},${pt.y}) rotate(${drawAngle}) scale(${scaleX},1)`
+        );
+      }
+
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [stories.length]);
+
   if (!stories.length) return null;
 
-  // ── Tính toán path SVG chữ S liên tục ──
-  // Mỗi milestone chiếm 1 "segment" cao SEGMENT_H px
-  // Đường đi: trái→phải rồi vòng cung → phải→trái → vòng cung → ...
-  const W          = 419;   // chiều rộng thiệp trừ padding
-  const SEGMENT_H  = 170;   // chiều cao mỗi segment
-  const ROAD_W     = 36;    // bề rộng đường
-  const PAD_X      = 30;    // lề trái phải
-  const ICON_X_L   = 80;    // X icon hàng LTR
-  const ICON_X_R   = W - 80;// X icon hàng RTL
-  const ICON_Y_OFF = SEGMENT_H / 2; // Y icon = giữa segment
+  const W        = 420;
+  const SEG_H    = 185;
+  const PAD_X    = 36;
+  const ROAD_W   = 44;
+  const n        = stories.length;
+  const totalH   = n * SEG_H + 80;
+  const rowY     = (i) => 52 + i * SEG_H + SEG_H / 2;
 
-  const n         = stories.length;
-  const totalH    = n * SEGMENT_H + 60; // tổng chiều cao canvas
-
-  // Build SVG path liên tục (centerline của đường)
-  // Hàng 0: đi ngang từ PAD_X → W-PAD_X (trái→phải)
-  // Curve 0→1: nửa vòng tròn bên phải
-  // Hàng 1: đi ngang từ W-PAD_X → PAD_X (phải→trái)
-  // Curve 1→2: nửa vòng tròn bên trái
-  // ...
+  // Build path S-curve mượt (Cubic Bezier)
   let pathD = "";
-  const rowY = (i) => 40 + i * SEGMENT_H + ICON_Y_OFF; // Y center của row i
-
   for (let i = 0; i < n; i++) {
     const y    = rowY(i);
-    const isLR = i % 2 === 0; // true = trái→phải
-    const x0   = isLR ? PAD_X     : W - PAD_X;
-    const x1   = isLR ? W - PAD_X : PAD_X;
+    const isLR = i % 2 === 0;
+    const xA   = isLR ? PAD_X     : W - PAD_X;
+    const xB   = isLR ? W - PAD_X : PAD_X;
 
-    if (i === 0) {
-      pathD += `M ${x0} ${y} `;
-    } else {
-      // Đã kết thúc đoạn trước tại x0 của row hiện tại
-    }
-    pathD += `L ${x1} ${y} `;
+    if (i === 0) pathD += `M ${xA},${y} `;
+    pathD += `L ${xB},${y} `;
 
-    // Vòng cua sang row tiếp theo
     if (i < n - 1) {
-      const yNext = rowY(i + 1);
-      const r     = (yNext - y) / 2; // bán kính vòng cua
-      // isLR: cua bên phải (sweep-flag=1), ngược lại: cua bên trái (sweep=0)
-      const cx = isLR ? W - PAD_X : PAD_X;
-      pathD += `A ${r} ${r} 0 0 ${isLR ? 1 : 0} ${isLR ? W - PAD_X : PAD_X} ${yNext} `;
+      const yN  = rowY(i + 1);
+      const mid = (y + yN) / 2;
+      const cpX = isLR ? W - PAD_X : PAD_X;
+      // Bezier mềm mại hơn Arc
+      pathD += `C ${cpX},${mid + 20} ${cpX},${mid - 20} ${isLR ? W-PAD_X : PAD_X},${yN} `;
     }
   }
 
-  // Vị trí icon và card cho mỗi milestone
-  const getIconX = (i) => i % 2 === 0 ? ICON_X_L : ICON_X_R;
-  const getCardSide = (i) => i % 2 === 0 ? "left" : "right";
-
-  // Mây trang trí
-  const CLOUDS = [
-    { x: "12%", y: 18, dur: "22s" },
-    { x: "60%", y: 8,  dur: "28s" },
-    { x: "80%", y: 24, dur: "19s" },
-  ];
-
   return (
     <div className="road3d-wrap">
+      {/* Defs gradients */}
+      <svg width="0" height="0" style={{position:"absolute",overflow:"hidden"}}>
+        <defs>
+          <linearGradient id="carBodyG" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="#9a2030"/>
+            <stop offset="50%"  stopColor="#631717"/>
+            <stop offset="100%" stopColor="#4a0e14"/>
+          </linearGradient>
+          <linearGradient id="carTopG" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="#a02535"/>
+            <stop offset="100%" stopColor="#6a1820"/>
+          </linearGradient>
+          <linearGradient id="carGlassG" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="rgba(180,230,255,.75)"/>
+            <stop offset="100%" stopColor="rgba(100,180,240,.4)"/>
+          </linearGradient>
+          <radialGradient id="headlightG" cx="50%" cy="50%" r="50%">
+            <stop offset="0%"   stopColor="#fffde0"/>
+            <stop offset="100%" stopColor="#e8c840"/>
+          </radialGradient>
+          <linearGradient id="roadG" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%"   stopColor="#bfa878"/>
+            <stop offset="40%"  stopColor="#d4b898"/>
+            <stop offset="100%" stopColor="#bfa878"/>
+          </linearGradient>
+          <linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="#fde8f0"/>
+            <stop offset="100%" stopColor="#fef9fb"/>
+          </linearGradient>
+          <filter id="carShadow">
+            <feDropShadow dx="0" dy="3" stdDeviation="3" floodColor="rgba(0,0,0,.3)"/>
+          </filter>
+        </defs>
+      </svg>
+
       {/* Header */}
-     
+      <div className="road3d-header">
+        <Rv dir="u" delay={0}>
+          <p style={{fontFamily:"'Quicksand',sans-serif",fontSize:"9.5px",fontWeight:700,
+            letterSpacing:".28em",textTransform:"uppercase",color:"rgba(99,23,23,.38)",marginBottom:"4px"}}>
+            CON ĐƯỜNG TÌNH YÊU
+          </p>
+          <span style={{display:"inline-block",borderTop:"1px solid rgba(99,23,23,.22)",
+            paddingTop:"6px",fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
+            fontSize:"24px",color:"#631717"}}>
+            Hành Trình Của Chúng Tôi
+          </span>
+        </Rv>
+      </div>
 
-      {/* Canvas */}
-      <div className="road3d-canvas" style={{height:`${totalH}px`,position:"relative",overflow:"visible"}}>
+      {/* Canvas SVG */}
+      <div className="road3d-canvas" style={{height:`${totalH}px`,position:"relative"}}>
+        <svg viewBox={`0 0 ${W} ${totalH}`}
+          style={{width:"100%",height:"100%",position:"absolute",top:0,left:0,overflow:"visible"}}>
 
-        {/* SVG — đường S liên tục */}
-        <svg className="road3d-svg" viewBox={`0 0 ${W} ${totalH}`}
-          preserveAspectRatio="xMidYMid meet"
-          style={{width:"100%",height:"100%"}}>
+          {/* Nền */}
+          <rect x="0" y="0" width={W} height={totalH} fill="url(#skyG)"/>
 
-          {/* Mây */}
-          {CLOUDS.map((cl,i) => (
-            <text key={i} x={cl.x} y={cl.y} fontSize="18" opacity=".28"
-              style={{animation:`cloudDrift ${cl.dur} linear infinite`}}>☁️</text>
+          {/* Mây SVG thật (không dùng text emoji) */}
+          {[{cx:70,cy:30,s:1},{cx:280,cy:18,s:.8},{cx:370,cy:36,s:.7}].map((cl,i)=>(
+            <g key={i} opacity=".3"
+              style={{animation:`cloudDrift ${18+i*6}s ease-in-out ${i*4}s infinite alternate`}}>
+              <ellipse cx={cl.cx}    cy={cl.cy}   rx={30*cl.s} ry={11*cl.s} fill="#fff"/>
+              <ellipse cx={cl.cx-15*cl.s} cy={cl.cy-5} rx={18*cl.s} ry={12*cl.s} fill="#fff"/>
+              <ellipse cx={cl.cx+12*cl.s} cy={cl.cy-7} rx={20*cl.s} ry={13*cl.s} fill="#fff"/>
+              <ellipse cx={cl.cx+4*cl.s}  cy={cl.cy-3} rx={12*cl.s} ry={9*cl.s}  fill="#fff"/>
+            </g>
           ))}
 
-          {/* === Lớp đường đổ bóng (offset thấp hơn) === */}
-          <path d={pathD}
-            fill="none"
-            stroke="rgba(100,40,30,.18)"
-            strokeWidth={ROAD_W + 10}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            transform="translate(3,5)"
-          />
+          {/* ── ĐƯỜNG S - 5 lớp ── */}
+          {/* Lớp 1: bóng tối */}
+          <path d={pathD} fill="none" stroke="rgba(80,30,20,.15)"
+            strokeWidth={ROAD_W+16} strokeLinecap="round" strokeLinejoin="round"
+            transform="translate(5,7)"/>
+          {/* Lớp 2: cỏ lề */}
+          <path d={pathD} fill="none" stroke="#b8c888"
+            strokeWidth={ROAD_W+28} strokeLinecap="round" strokeLinejoin="round"/>
+          {/* Lớp 3: đất lề đường */}
+          <path d={pathD} fill="none" stroke="#c4a870"
+            strokeWidth={ROAD_W+12} strokeLinecap="round" strokeLinejoin="round"/>
+          {/* Lớp 4: mặt đường nhựa */}
+          <path d={pathD} fill="none" stroke="url(#roadG)"
+            strokeWidth={ROAD_W} strokeLinecap="round" strokeLinejoin="round"/>
+          {/* Lớp 5: vạch kẻ vàng giữa đường */}
+          <path d={pathD} fill="none" stroke="rgba(255,235,150,.75)"
+            strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"
+            strokeDasharray="16 12"/>
+          {/* Vạch trắng mép đường trái */}
+          <path d={pathD} fill="none" stroke="rgba(255,255,255,.45)"
+            strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
 
-          {/* === Lề đường (cỏ / vỉa hè) === */}
-          <path d={pathD}
-            fill="none"
-            stroke="#c8b090"
-            strokeWidth={ROAD_W + 12}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-
-          {/* === Mặt đường chính === */}
-          <path d={pathD}
-            fill="none"
-            stroke="#d4b8a8"
-            strokeWidth={ROAD_W}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-
-          {/* === Vạch kẻ giữa (đứt) === */}
-          <path d={pathD}
-            fill="none"
-            stroke="rgba(255,255,255,.65)"
-            strokeWidth={2.5}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeDasharray="18 14"
-          />
-
-          {/* === Xe ô tô chạy dọc đường (CSS motion path) === */}
-          <text fontSize="36" style={{
-            offsetPath:`path("${pathD}")`,
-            animation:"carDrive 30s linear infinite",
-            dominantBaseline:"middle",
-            textAnchor:"middle",
-          }}>💞💞💞💞</text>
-
-          {/* === Cây dọc đường === */}
+          {/* ── CÂY bên đường (SVG shapes thật) ── */}
           {stories.map((_, i) => {
             const y    = rowY(i);
             const isLR = i % 2 === 0;
-            const trees = ["🌸","🌳","🌲","🌺","🌿","🌻","🍀"];
-            // Cây bên đối diện icon
-            const tx1  = isLR ? W - PAD_X + 18 : PAD_X - 18;
-            const tx2  = isLR ? PAD_X - 18     : W - PAD_X + 18;
+            // Cây ngoài lề đường — cạnh đối diện với card
+            const treeColors = [
+              ["#5a9040","#4a7830"],
+              ["#6aaa4a","#5a9040"],
+              ["#7ab850","#609040"],
+            ];
+            const [c1,c2] = treeColors[i%3];
+            const tx = isLR ? W - PAD_X + 24 : PAD_X - 24;
+            const tx2= isLR ? PAD_X - 20      : W - PAD_X + 20;
+
             return (
               <React.Fragment key={i}>
-                <text x={tx1} y={y - 14} fontSize="14" textAnchor="middle"
-                  style={{animation:`treeWave 3s ease-in-out ${(i*0.4).toFixed(1)}s infinite`}}>
-                  {trees[i % trees.length]}
-                </text>
-                {i < stories.length-1 && (
-                  <text x={tx2} y={y + SEGMENT_H/2 + 8} fontSize="13" textAnchor="middle"
-                    style={{animation:`treeWave 2.8s ease-in-out ${(i*0.3).toFixed(1)}s infinite`}}>
-                    {trees[(i+2) % trees.length]}
-                  </text>
+                {/* Cây chính */}
+                <g style={{animation:`treeWave 3s ease-in-out ${i*0.5}s infinite`}}>
+                  <rect  x={tx-3}  y={y+2}   width="6" height="18" rx="2" fill="#7a5030"/>
+                  <circle cx={tx}  cy={y-6}   r="14"  fill={c1} opacity=".9"/>
+                  <circle cx={tx-7} cy={y}    r="9"   fill={c2} opacity=".75"/>
+                  <circle cx={tx+7} cy={y+2}  r="8"   fill={c2} opacity=".75"/>
+                  <circle cx={tx}  cy={y-14}  r="9"   fill={c1} opacity=".7"/>
+                </g>
+                {/* Cây nhỏ đoạn cong */}
+                {i < n-1 && (
+                  <g style={{animation:`treeWave 2.8s ease-in-out ${i*0.3+0.8}s infinite`}}>
+                    <rect  x={tx2-2}  y={rowY(i)+SEG_H/2+2} width="4" height="12" rx="1.5" fill="#8a6040"/>
+                    <circle cx={tx2} cy={rowY(i)+SEG_H/2-4} r="9"
+                      fill={treeColors[(i+1)%3][0]} opacity=".8"/>
+                  </g>
                 )}
+                {/* Hoa nhỏ */}
+                {i%2===0 && <circle cx={tx+18} cy={y+14} r="4" fill="#e86888" opacity=".6"/>}
+                {i%2===1 && <circle cx={tx-16} cy={y+12} r="3.5" fill="#e8a050" opacity=".55"/>}
               </React.Fragment>
+            );
+          })}
+
+          {/* ── PATH ẩn cho xe chạy (ref để JS dùng) ── */}
+          <path ref={pathRef} d={pathD} fill="none" stroke="none"/>
+
+          {/* ── XE 3D SVG (JS RAF điều khiển vị trí) ── */}
+          <g ref={carRef} filter="url(#carShadow)">
+            {/* Bóng xe dưới */}
+            <ellipse cx="0" cy="18" rx="28" ry="6" fill="rgba(0,0,0,.22)" opacity=".7"/>
+            {/* Thân dưới */}
+            <rect x="-30" y="-10" width="60" height="20" rx="7" fill="url(#carBodyG)"/>
+            {/* Viền chrome thân */}
+            <rect x="-30" y="-10" width="60" height="4" rx="3"
+              fill="rgba(255,255,255,.15)"/>
+            {/* Cabin */}
+            <rect x="-20" y="-24" width="42" height="16" rx="7" fill="url(#carTopG)"/>
+            {/* Kính trước nghiêng */}
+            <path d="M 18,-24 L 22,-24 L 24,-10 L 18,-10 Z"
+              fill="url(#carGlassG)" opacity=".85"/>
+            {/* Kính sau nghiêng */}
+            <path d="M -20,-24 L -16,-24 L -16,-10 L -20,-10 Z"
+              fill="rgba(150,210,255,.5)"/>
+            {/* Kính cửa sổ */}
+            <rect x="-14" y="-23" width="30" height="12" rx="3"
+              fill="url(#carGlassG)" opacity=".7"/>
+            {/* Đèn pha trước */}
+            <ellipse cx="29" cy="-3" rx="6" ry="4" fill="url(#headlightG)"/>
+            <ellipse cx="29" cy="-3" rx="3.5" ry="2.2" fill="rgba(255,252,200,.95)"/>
+            {/* Đèn hậu */}
+            <rect x="-32" y="-8" width="5" height="9" rx="2" fill="#cc2020"/>
+            <rect x="-32" y="-8" width="5" height="9" rx="2" fill="rgba(255,80,80,.5)"/>
+            {/* Bánh xe trước */}
+            <circle cx="18" cy="9" r="9" fill="#1a1a1a"/>
+            <circle cx="18" cy="9" r="6" fill="#383838"/>
+            <circle cx="18" cy="9" r="3" fill="#666"/>
+            <circle cx="18" cy="9" r="1.5" fill="#999"/>
+            {/* Bánh xe sau */}
+            <circle cx="-18" cy="9" r="9" fill="#1a1a1a"/>
+            <circle cx="-18" cy="9" r="6" fill="#383838"/>
+            <circle cx="-18" cy="9" r="3" fill="#666"/>
+            <circle cx="-18" cy="9" r="1.5" fill="#999"/>
+            {/* Gương chiếu hậu */}
+            <rect x="24" y="-22" width="8" height="5" rx="2" fill="#7a1520"/>
+            <rect x="24" y="-22" width="8" height="5" rx="2" fill="rgba(100,180,230,.4)"/>
+            {/* Nóc chrome viền */}
+            <path d="M -20,-24 L 22,-24" stroke="rgba(255,255,255,.2)" strokeWidth="1.5" fill="none"/>
+          </g>
+
+          {/* ── MILESTONE ICONS ── */}
+          {stories.map((s, i) => {
+            const y    = rowY(i);
+            const isLR = i % 2 === 0;
+            const ix   = isLR ? PAD_X + 44 : W - PAD_X - 44;
+            return (
+              <g key={i}>
+                {/* Cột */}
+                <rect x={ix-2.5} y={y} width="5" height="30" rx="2.5"
+                  fill="#8a6040" opacity=".8"/>
+                {/* Vòng ngoài glow */}
+                <circle cx={ix} cy={y-20} r="26"
+                  fill="rgba(99,23,23,.08)" stroke="rgba(99,23,23,.15)" strokeWidth="2"/>
+                {/* Vòng chính */}
+                <circle cx={ix} cy={y-20} r="20"
+                  fill="url(#carBodyG)"
+                  stroke="rgba(255,180,160,.45)" strokeWidth="2.5"/>
+                {/* Emoji */}
+                <text x={ix} y={y-13} textAnchor="middle"
+                  fontSize="16" dominantBaseline="middle">{s.emoji||"❤️"}</text>
+                {/* Số thứ tự */}
+                <circle cx={ix+14} cy={y-36} r="9" fill="#fff"
+                  stroke="#9a2a2a" strokeWidth="1.5"/>
+                <text x={ix+14} y={y-32} textAnchor="middle"
+                  fontSize="9" fontWeight="800" fill="#631717"
+                  fontFamily="Cinzel,serif">{i+1}</text>
+              </g>
             );
           })}
         </svg>
 
-        {/* === Milestones (HTML overlay trên SVG) === */}
+        {/* ── CARDS HTML overlay ── */}
         {stories.map((s, i) => {
-          const isLR   = i % 2 === 0;
-          const iconX  = getIconX(i);
-          const y      = rowY(i);
-          // % position trên chiều rộng
-          const iconXPct = (iconX / W * 100).toFixed(1) + "%";
-
-          // Card bên đối diện icon
-          const cardLeft = isLR
-            ? `calc(${iconXPct} + 34px)`   // icon bên trái → card bên phải icon
-            : "16px";                        // icon bên phải → card bên trái
-          const cardRight = isLR
-            ? "auto"
-            : `calc(${(100 - iconX/W*100).toFixed(1)}% + 34px)`;
-          const cardWidth = "calc(50% - 50px)";
+          const y    = rowY(i);
+          const isLR = i % 2 === 0;
+          const ix   = isLR ? PAD_X + 44 : W - PAD_X - 44;
+          const ixPct= (ix / W * 100).toFixed(1);
+          const cardTopPct = ((y - 58) / totalH * 100).toFixed(1);
 
           return (
-            <Rv key={i} dir={isLR?"l":"r"} delay={i*0.07}>
-              {/* Icon */}
-              <div className="road3d-icon" style={{
+            <Rv key={i} dir={isLR?"r":"l"} delay={i*0.07}>
+              <div style={{
                 position:"absolute",
-                left:`calc(${iconXPct} - 26px)`,
-                top:`${y - 26}px`,
-                zIndex:5,
+                top:`${y - 58}px`,
+                ...(isLR
+                  ? {left:`calc(${ixPct}% + 28px)`, right:"14px"}
+                  : {right:`calc(${(100-Number(ixPct)).toFixed(1)}% + 28px)`, left:"14px"}
+                ),
+                background:"rgba(255,255,255,.97)",
+                backdropFilter:"blur(8px)",
+                border:"1px solid rgba(99,23,23,.1)",
+                borderRadius:"14px",
+                padding:"10px 13px",
+                boxShadow:"0 6px 22px rgba(99,23,23,.1),0 2px 6px rgba(0,0,0,.05)",
+                zIndex:3,
               }}>
-                {s.emoji||"❤️"}
-                <div className="road3d-num">{i+1}</div>
-              </div>
-
-              {/* Card */}
-              <div className="road3d-card" style={{
-                position:"absolute",
-                top:`${y - 48}px`,
-                left:  isLR ? `calc(${iconXPct} + 34px)` : "16px",
-                right: isLR ? "16px" : `calc(${(100-iconX/W*100).toFixed(1)}% + 34px)`,
-                maxWidth:"160px",
-              }}>
-                <div className="road3d-date">{s.date}</div>
-                <div className="road3d-title">{s.title}</div>
-                {s.body && <div className="road3d-body">{s.body}</div>}
+                <div style={{fontSize:"8px",fontWeight:700,letterSpacing:".18em",
+                  textTransform:"uppercase",color:"#9a2a2a",
+                  fontFamily:"'Quicksand',sans-serif",marginBottom:"2px"}}>{s.date}</div>
+                <div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
+                  fontSize:"13.5px",fontWeight:700,color:"#3a0e18",
+                  lineHeight:1.3,marginBottom:"3px"}}>{s.title}</div>
+                {s.body&&<div style={{fontSize:"9.5px",color:"#8a5050",
+                  fontFamily:"'Quicksand',sans-serif",lineHeight:1.55}}>{s.body}</div>}
               </div>
             </Rv>
           );
         })}
       </div>
-
-      {/* Padding bottom */}
-      <div style={{height:"16px"}}/>
+      <div style={{height:"20px"}}/>
     </div>
   );
 }
@@ -2522,8 +2667,7 @@ export default function WeddingApp() {
       <div style={{position:"relative",background:"#fdf7f7",padding:"22px 18px 20px"}}>
         <div style={{position:"absolute",top:0,left:0,right:0,height:"3px",background:"linear-gradient(90deg,transparent,#631717,transparent)"}}/>
         <div style={{textAlign:"center",marginBottom:"12px"}}>
-          <Rv dir="u" delay={0}><span style={{display:"inline-block",borderTop:"1px solid rgba(99,23,23,.4)",paddingTop:"7px",fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:"27px",color:"#631717"}}>{d.sec_invite_title}</span></Rv>
-          <Rv dir="u" delay={0.1}><p style={{fontSize:"10px",fontWeight:700,letterSpacing:".18em",textTransform:"uppercase",color:"#444",fontFamily:"'Quicksand',sans-serif",marginTop:"4px"}}>{d.sec_invite_sub}</p></Rv>
+          <Rv dir="u" delay={0}><CloudTitle title={d.sec_invite_title} sub={d.sec_invite_sub}/></Rv>
         </div>
         <Rv dir="s" delay={0.1}>
           <Photo url={d.couple_img} pos={d.couple_pos} shape={d.couple_shape||"art"}
@@ -2598,8 +2742,7 @@ export default function WeddingApp() {
       <div style={{position:"relative",background:"#fdf7f7",padding:"22px 16px 20px"}}>
         <div style={{position:"absolute",top:0,left:0,right:0,height:"3px",background:"linear-gradient(90deg,transparent,#631717,transparent)"}}/>
         <div style={{textAlign:"center",marginBottom:"14px"}}>
-          <Rv dir="u" delay={0}><span style={{display:"inline-block",borderTop:"1px solid rgba(99,23,23,.4)",paddingTop:"7px",fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:"27px",color:"#631717"}}>{d.sec_cal_title}</span></Rv>
-          <Rv dir="u" delay={0.1}><p style={{fontSize:"10px",fontWeight:700,letterSpacing:".18em",textTransform:"uppercase",color:"#444",fontFamily:"'Quicksand',sans-serif",marginTop:"4px"}}>{d.sec_cal_sub}</p></Rv>
+          <Rv dir="u" delay={0}><CloudTitle title={d.sec_cal_title} sub={d.sec_cal_sub}/></Rv>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:"0",marginBottom:"10px",alignItems:"start"}}>
           <Rv dir="r" delay={0.1}>
@@ -2758,8 +2901,8 @@ export default function WeddingApp() {
       {/* ═══ RSVP FORM + LIVE FEED ═══ */}
       <div style={{position:"relative",background:"#fdf7f7",padding:"22px 18px 20px"}}>
         <div style={{position:"absolute",top:0,left:0,right:0,height:"3px",background:"linear-gradient(90deg,transparent,#631717,transparent)"}}/>
-        <Rv dir="u" delay={0} style={{textAlign:"center",marginBottom:"14px"}}>
-          <span style={{display:"inline-block",borderTop:"1px solid rgba(99,23,23,.4)",paddingTop:"7px",fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:"27px",color:"#631717"}}>Xác Nhận &amp; Chúc Mừng</span>
+        <Rv dir="u" delay={0} style={{marginBottom:"14px"}}>
+          <CloudTitle title="Xác Nhận &amp; Chúc Mừng" sub="RSVP"/>
         </Rv>
 
         {/* Form gửi */}
@@ -2922,6 +3065,74 @@ function EnvelopeScreen({ d, onOpen }) {
           <span className="env-open-icon">💌</span>
         </button>
         <p className="env-hint">Nhấn để mở thiệp</p>
+      </div>
+    </div>
+  );
+}
+
+// ── CloudTitle — tiêu đề nghệ thuật dạng đám mây ──
+function CloudTitle({ title, sub, dark=false }) {
+  const titleColor = dark ? "rgba(255,220,210,.95)" : "#631717";
+  const subColor   = dark ? "rgba(255,190,180,.65)" : "rgba(99,23,23,.5)";
+  const cloudFill  = dark ? "rgba(99,23,23,.35)"    : "rgba(255,255,255,.92)";
+  const cloudStroke= dark ? "rgba(180,60,60,.3)"    : "rgba(99,23,23,.15)";
+
+  return (
+    <div style={{textAlign:"center",padding:"4px 0 2px",position:"relative"}}>
+      {/* Cloud SVG nền */}
+      <svg viewBox="0 0 320 70" style={{
+        position:"absolute",
+        top:"50%",left:"50%",
+        transform:"translate(-50%,-50%)",
+        width:"min(340px,90%)",
+        height:"70px",
+        overflow:"visible",
+        pointerEvents:"none",
+        zIndex:0,
+      }}>
+        <defs>
+          <filter id="cloudBlur">
+            <feGaussianBlur stdDeviation="1.5" result="blur"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+        </defs>
+        {/* Đám mây chính — nhiều ellipse chồng nhau */}
+        <g opacity=".95">
+          {/* Thân mây */}
+          <ellipse cx="160" cy="42" rx="145" ry="22" fill={cloudFill} stroke={cloudStroke} strokeWidth="1"/>
+          {/* Đỉnh mây trái */}
+          <ellipse cx="75"  cy="34" rx="38"  ry="26" fill={cloudFill} stroke={cloudStroke} strokeWidth="1"/>
+          {/* Đỉnh mây giữa trái */}
+          <ellipse cx="120" cy="28" rx="32"  ry="24" fill={cloudFill} stroke={cloudStroke} strokeWidth="1"/>
+          {/* Đỉnh mây giữa */}
+          <ellipse cx="160" cy="22" rx="40"  ry="28" fill={cloudFill} stroke={cloudStroke} strokeWidth="1"/>
+          {/* Đỉnh mây giữa phải */}
+          <ellipse cx="200" cy="28" rx="32"  ry="24" fill={cloudFill} stroke={cloudStroke} strokeWidth="1"/>
+          {/* Đỉnh mây phải */}
+          <ellipse cx="245" cy="34" rx="38"  ry="26" fill={cloudFill} stroke={cloudStroke} strokeWidth="1"/>
+          {/* Fill đáy mây phẳng */}
+          <rect x="18" y="42" width="284" height="24" rx="0" fill={cloudFill}/>
+        </g>
+        {/* Bóng nhẹ bên trong */}
+        <ellipse cx="160" cy="32" rx="130" ry="20"
+          fill="none" stroke={cloudStroke} strokeWidth=".8" opacity=".5"/>
+      </svg>
+
+      {/* Nội dung chữ */}
+      <div style={{position:"relative",zIndex:1,padding:"6px 32px 10px"}}>
+        {sub && (
+          <p style={{
+            fontSize:"9px",fontWeight:700,letterSpacing:".24em",
+            textTransform:"uppercase",color:subColor,
+            fontFamily:"'Quicksand',sans-serif",marginBottom:"3px",
+          }}>{sub}</p>
+        )}
+        <span style={{
+          fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
+          fontSize:"26px",fontWeight:700,color:titleColor,
+          lineHeight:1.2,display:"block",
+          textShadow: dark ? "0 1px 4px rgba(0,0,0,.3)" : "none",
+        }}>{title}</span>
       </div>
     </div>
   );
