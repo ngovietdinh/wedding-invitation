@@ -843,106 +843,55 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 }
 
 /* ════════════════════════════════════════════════════
-   ROAD STORY 3D — Đường liên tục chữ S, perspective 3D
+   ROAD STORY 3D — Three.js car + SVG S-road
    ════════════════════════════════════════════════════ */
 .road3d-wrap{
-  background:linear-gradient(180deg,#fdeef5 0%,#fdf4f8 30%,#fefafb 100%);
+  background:linear-gradient(180deg,#fdeef5 0%,#fdf4f8 40%,#fefafb 100%);
   padding:0;overflow:hidden;position:relative;
 }
 .road3d-header{
-  text-align:center;padding:22px 16px 4px;position:relative;z-index:2;
+  text-align:center;padding:22px 16px 6px;position:relative;z-index:2;
 }
-/* Canvas SVG toàn bộ section */
+/* Canvas chứa SVG đường + Three.js canvas */
 .road3d-canvas{
-  position:relative;width:100%;
-  /* Chiều cao = số milestone × 160px */
+  position:relative;
+  /* Không dùng overflow:hidden — Three.js canvas cần hiển thị */
 }
-.road3d-svg{
-  position:absolute;top:0;left:0;width:100%;height:100%;
-  overflow:visible;pointer-events:none;
-}
-
-/* Mỗi milestone block */
-.road3d-block{
+/* Three.js canvas đặt TRÊN SVG */
+.road3d-threejs{
   position:absolute;
-  display:flex;align-items:center;
-  gap:0;
+  top:0;left:0;
+  width:100%;height:100%;
+  pointer-events:none;
+  z-index:4;            /* cao hơn SVG z-index:1 */
 }
-/* Block lẻ: icon bên trái */
-.road3d-block.left{ flex-direction:row; }
-/* Block chẵn: icon bên phải */
-.road3d-block.right{ flex-direction:row-reverse; }
-
-/* Card nội dung */
+/* Cards nội dung — z-index:3, KHÔNG có nền trắng đặc */
 .road3d-card{
-  flex:1;
-  background:#fff;
+  position:absolute;
+  /* Nền glassmorphism nhẹ — vẫn thấy đường phía sau */
+  background:rgba(253,245,247,.88);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
   border:1px solid rgba(99,23,23,.12);
   border-radius:12px;
-  padding:11px 14px;
-  box-shadow:0 4px 18px rgba(99,23,23,.1),0 1px 4px rgba(0,0,0,.05);
-  max-width:160px;
-  position:relative;
-  transition:transform .25s,box-shadow .25s;
+  padding:9px 12px;
+  box-shadow:0 4px 16px rgba(99,23,23,.1);
+  z-index:3;
+  max-width:148px;
 }
-.road3d-card:hover{
-  transform:translateY(-3px);
-  box-shadow:0 8px 26px rgba(99,23,23,.18);
+.road3d-card-date{
+  font-size:8px;font-weight:700;letter-spacing:.18em;
+  text-transform:uppercase;color:#9a2a2a;
+  font-family:"Quicksand",sans-serif;margin-bottom:2px;
 }
-/* Mũi tên card → icon */
-.road3d-block.left  .road3d-card::after{content:'';position:absolute;right:-8px;top:50%;transform:translateY(-50%);border:8px solid transparent;border-left:8px solid #fff;}
-.road3d-block.left  .road3d-card::before{content:'';position:absolute;right:-10px;top:50%;transform:translateY(-50%);border:9px solid transparent;border-left:9px solid rgba(99,23,23,.12);}
-.road3d-block.right .road3d-card::after{content:'';position:absolute;left:-8px;top:50%;transform:translateY(-50%);border:8px solid transparent;border-right:8px solid #fff;}
-.road3d-block.right .road3d-card::before{content:'';position:absolute;left:-10px;top:50%;transform:translateY(-50%);border:9px solid transparent;border-right:9px solid rgba(99,23,23,.12);}
-
-.road3d-date{
-  font-size:8px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
-  color:#9a2a2a;font-family:'Quicksand',sans-serif;margin-bottom:2px;
+.road3d-card-title{
+  font-family:"Cormorant Garamond",serif;font-style:italic;
+  font-size:13px;font-weight:700;color:#3a0e18;
+  line-height:1.3;margin-bottom:2px;
 }
-.road3d-title{
-  font-family:'Cormorant Garamond',serif;font-style:italic;
-  font-size:14px;font-weight:700;color:#3a0e18;line-height:1.3;margin-bottom:3px;
-}
-.road3d-body{
-  font-size:9.5px;color:#8a5050;font-family:'Quicksand',sans-serif;line-height:1.55;
-}
-
-/* Icon milestone */
-.road3d-icon{
-  width:52px;height:52px;border-radius:50%;flex-shrink:0;
-  background:linear-gradient(135deg,#631717,#9a2a2a);
-  display:flex;align-items:center;justify-content:center;
-  font-size:22px;z-index:5;
-  box-shadow:
-    0 0 0 5px rgba(99,23,23,.1),
-    0 0 0 10px rgba(99,23,23,.05),
-    0 4px 14px rgba(99,23,23,.4);
-  border:2px solid rgba(255,180,160,.3);
-  position:relative;
-  transition:transform .3s;
-}
-.road3d-icon:hover{transform:scale(1.1);}
-/* Số thứ tự nhỏ */
-.road3d-num{
-  position:absolute;top:-2px;right:-2px;
-  width:18px;height:18px;border-radius:50%;
-  background:#fff;border:2px solid #9a2a2a;
-  font-size:9px;font-weight:800;color:#631717;
-  display:flex;align-items:center;justify-content:center;
-  font-family:'Cinzel',serif;
-}
-
-/* ── Xe ô tô chạy dọc đường ── */
-@keyframes carDrive{
-  0%  {offset-distance:0%;   opacity:0;}
-  5%  {opacity:1;}
-  95% {opacity:1;}
-  100%{offset-distance:100%; opacity:0;}
-}
-/* Xe nhỏ chạy theo đường S */
-.car-emoji{
-  offset-rotate:auto;         /* tự xoay theo hướng path */
-  will-change:offset-distance;
+.road3d-card-body{
+  font-size:9px;color:#8a5050;
+  font-family:"Quicksand",sans-serif;line-height:1.5;
 }
 
 /* ══ MINI MAP ══ */
@@ -1072,7 +1021,7 @@ body{background:#c0a0a0;display:flex;justify-content:center;align-items:flex-sta
 /* Tiêu đề section hành trình */
 .journey-header{
   text-align:center;
-  padding:22px 16px 20;
+  padding:22px 16px 0;
   background:#fdf7f7;
   position:relative;
 }
@@ -1985,383 +1934,407 @@ function FlipClock({ dateStr }) {
 // ROAD STORY — Hành trình tình yêu dạng đường ô tô
 // Milestones xen kẽ trên/dưới đường, có cây, mây, xe chạy
 // ════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// LOVE STORY — Đường S lượn cong + Xe SVG đẳng cấp
+// Dùng SVG animateMotion + rotate="auto-reverse" để xe luôn
+// nhìn đúng hướng, không bao giờ ngược, không cần Three.js
+// ═══════════════════════════════════════════════════════════════
 function LoveStory({ stories = [] }) {
-  const carRef   = useRef(null);   // ref tới <g> xe trong SVG
-  const pathRef  = useRef(null);   // ref tới path SVG để tính tọa độ
-  const rafRef   = useRef(null);
-  const pctRef   = useRef(0);
-
-  // Animate xe dọc path bằng RAF (hoạt động trên mọi browser/mobile)
-  useEffect(() => {
-    const DURATION = 22000; // ms một vòng
-    let start = null;
-
-    const tick = (ts) => {
-      if (!start) start = ts;
-      const elapsed = ts - start;
-      const pct     = (elapsed % DURATION) / DURATION; // 0→1
-
-      const pathEl = pathRef.current;
-      const carEl  = carRef.current;
-      if (pathEl && carEl) {
-        const len  = pathEl.getTotalLength();
-        const pt   = pathEl.getPointAtLength(pct * len);
-        const pt2  = pathEl.getPointAtLength(Math.min((pct + 0.005) * len, len));
-
-        // Góc nghiêng theo tiếp tuyến
-        const dx    = pt2.x - pt.x;
-        const dy    = pt2.y - pt.y;
-        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-
-        // Xe luôn nhìn theo hướng chạy, KHÔNG bao giờ lộn đầu
-        // Khi angle > 90 hoặc < -90 (đang đi ngược) → flip scaleX
-        const goingLeft = dx < 0;
-        const scaleX    = goingLeft ? -1 : 1;
-        const drawAngle = goingLeft ? angle + 180 : angle;
-
-        carEl.setAttribute("transform",
-          `translate(${pt.x},${pt.y}) rotate(${drawAngle}) scale(${scaleX},1)`
-        );
-      }
-
-      rafRef.current = requestAnimationFrame(tick);
-    };
-
-    rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [stories.length]);
-
   if (!stories.length) return null;
 
-  const W        = 420;
-  const SEG_H    = 185;
-  const PAD_X    = 36;
-  const ROAD_W   = 44;
-  const n        = stories.length;
-  const totalH   = n * SEG_H + 80;
-  const rowY     = (i) => 30 + i * SEG_H + SEG_H / 2;
+  // ── Constants ──
+  const W      = 420;
+  const SEG_H  = 190;
+  const PAD_X  = 40;
+  const ROAD_W = 42;
+  const n      = stories.length;
+  const totalH = n * SEG_H + 60;
+  const rowY   = (i) => 40 + i * SEG_H + SEG_H / 2;
 
-  // Build path S-curve mượt (Cubic Bezier)
+  // ── Build path S-curve mượt bằng Bezier ──
+  // Mỗi hàng: đường thẳng ngang
+  // Kết nối: Cubic Bezier cong mềm
   let pathD = "";
   for (let i = 0; i < n; i++) {
     const y    = rowY(i);
-    const isLR = i % 2 === 0;
-    const xA   = isLR ? PAD_X     : W - PAD_X;
-    const xB   = isLR ? W - PAD_X : PAD_X;
+    const isLR = i % 2 === 0;   // chẵn: trái→phải, lẻ: phải→trái
+    const xA   = isLR ? PAD_X       : W - PAD_X;
+    const xB   = isLR ? W - PAD_X   : PAD_X;
 
-    if (i === 0) pathD += `M ${xA},${y} `;
-    pathD += `L ${xB},${y} `;
+    if (i === 0) pathD += `M ${xA} ${y} `;
+    pathD += `L ${xB} ${y} `;
 
     if (i < n - 1) {
       const yN  = rowY(i + 1);
-      const mid = (y + yN) / 2;
-      const cpX = isLR ? W - PAD_X : PAD_X;
-      // Bezier mềm mại hơn Arc
-      pathD += `C ${cpX},${mid + 20} ${cpX},${mid - 20} ${isLR ? W-PAD_X : PAD_X},${yN} `;
+      const cy1 = y   + (yN - y) * 0.45;
+      const cy2 = yN  - (yN - y) * 0.45;
+      const cx  = isLR ? W - PAD_X : PAD_X;
+      pathD += `C ${cx} ${cy1} ${cx} ${cy2} ${isLR ? PAD_X : W - PAD_X} ${yN} `;
     }
   }
 
+  // Thời gian animate: chậm vừa phải, 1 vòng = 28 giây
+  const DUR = `${n * 6}s`;
+
   return (
     <div className="road3d-wrap">
-      {/* Defs gradients */}
-      <svg width="0" height="0" style={{position:"absolute",overflow:"hidden"}}>
-        <defs>
-          <linearGradient id="carBodyG" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor="#9a2030"/>
-            <stop offset="50%"  stopColor="#631717"/>
-            <stop offset="100%" stopColor="#4a0e14"/>
-          </linearGradient>
-          <linearGradient id="carTopG" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor="#a02535"/>
-            <stop offset="100%" stopColor="#6a1820"/>
-          </linearGradient>
-          <linearGradient id="carGlassG" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor="rgba(180,230,255,.75)"/>
-            <stop offset="100%" stopColor="rgba(100,180,240,.4)"/>
-          </linearGradient>
-          <radialGradient id="headlightG" cx="50%" cy="50%" r="50%">
-            <stop offset="0%"   stopColor="#fffde0"/>
-            <stop offset="100%" stopColor="#e8c840"/>
-          </radialGradient>
-          <linearGradient id="roadG" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%"   stopColor="#bfa878"/>
-            <stop offset="40%"  stopColor="#d4b898"/>
-            <stop offset="100%" stopColor="#bfa878"/>
-          </linearGradient>
-          <linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor="#fde8f0"/>
-            <stop offset="100%" stopColor="#fef9fb"/>
-          </linearGradient>
-          <filter id="carShadow">
-            <feDropShadow dx="0" dy="3" stdDeviation="3" floodColor="rgba(0,0,0,.3)"/>
-          </filter>
-        </defs>
-      </svg>
 
-      {/* ── Ribbon Title — Dải ruy băng SVG đẳng cấp ── */}
-      <div style={{position:"relative",textAlign:"center",padding:"28px 0 8px",zIndex:2}}>
-        <svg viewBox="0 0 340 72" style={{width:"min(360px,92%)",height:"72px",overflow:"visible",
+      {/* ── Ribbon title ── */}
+      <div style={{position:"relative",textAlign:"center",padding:"26px 0 8px",zIndex:2}}>
+        <svg viewBox="0 0 340 72" style={{
+          width:"min(360px,92%)",height:"72px",overflow:"visible",
           position:"absolute",top:"8px",left:"50%",transform:"translateX(-50%)",zIndex:0}}>
           <defs>
-            <linearGradient id="ribG" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="rib4" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%"   stopColor="#8a1a28"/>
-              <stop offset="45%"  stopColor="#631717"/>
+              <stop offset="50%"  stopColor="#631717"/>
               <stop offset="100%" stopColor="#4a0e14"/>
             </linearGradient>
-            <linearGradient id="ribShine" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="ribSh4" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%"   stopColor="rgba(255,255,255,.18)"/>
               <stop offset="100%" stopColor="rgba(255,255,255,0)"/>
             </linearGradient>
-            <filter id="ribShadow">
-              <feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="rgba(80,10,20,.35)"/>
+            <filter id="ribF4">
+              <feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="rgba(60,5,15,.4)"/>
             </filter>
           </defs>
-
-          {/* Đuôi ruy băng trái */}
           <path d="M 8,18 L 52,18 L 44,36 L 52,54 L 8,54 L 18,36 Z"
-            fill="url(#ribG)" filter="url(#ribShadow)"/>
-          {/* Bóng đuôi trái */}
-          <path d="M 8,18 L 52,18 L 44,36 L 52,54 L 8,54 L 18,36 Z"
-            fill="url(#ribShine)" opacity=".5"/>
-
-          {/* Đuôi ruy băng phải */}
+            fill="url(#rib4)" filter="url(#ribF4)"/>
           <path d="M 332,18 L 288,18 L 296,36 L 288,54 L 332,54 L 322,36 Z"
-            fill="url(#ribG)" filter="url(#ribShadow)"/>
-          <path d="M 332,18 L 288,18 L 296,36 L 288,54 L 332,54 L 322,36 Z"
-            fill="url(#ribShine)" opacity=".5"/>
-
-          {/* Dải chính */}
+            fill="url(#rib4)" filter="url(#ribF4)"/>
           <rect x="44" y="12" width="252" height="48" rx="4"
-            fill="url(#ribG)" filter="url(#ribShadow)"/>
-          {/* Shine trên */}
-          <rect x="44" y="12" width="252" height="24" rx="4"
-            fill="url(#ribShine)"/>
-          {/* Đường viền vàng */}
+            fill="url(#rib4)" filter="url(#ribF4)"/>
+          <rect x="44" y="12" width="252" height="24" rx="4" fill="url(#ribSh4)"/>
           <rect x="44" y="12" width="252" height="48" rx="4"
-            fill="none" stroke="rgba(220,180,100,.35)" strokeWidth="1.5"/>
-          {/* Line trang trí trên/dưới */}
-          <line x1="58" y1="20" x2="282" y2="20"
+            fill="none" stroke="rgba(220,180,100,.3)" strokeWidth="1.5"/>
+          <line x1="60" y1="20" x2="280" y2="20"
             stroke="rgba(255,200,150,.2)" strokeWidth="1"/>
-          <line x1="58" y1="52" x2="282" y2="52"
+          <line x1="60" y1="52" x2="280" y2="52"
             stroke="rgba(255,200,150,.2)" strokeWidth="1"/>
-
-          {/* Điểm trang trí hai đầu dải */}
-          <circle cx="58"  cy="36" r="4" fill="rgba(220,170,100,.5)"/>
-          <circle cx="282" cy="36" r="4" fill="rgba(220,170,100,.5)"/>
+          <circle cx="60"  cy="36" r="4" fill="rgba(220,170,100,.4)"/>
+          <circle cx="280" cy="36" r="4" fill="rgba(220,170,100,.4)"/>
         </svg>
-
-        {/* Chữ trên ribbon */}
-        <div style={{position:"relative",zIndex:1,padding:"4px 0 0"}}>
+        <div style={{position:"relative",zIndex:1}}>
           <p style={{fontSize:"8.5px",fontWeight:700,letterSpacing:".35em",
-            textTransform:"uppercase",color:"rgba(255,200,170,.6)",
+            textTransform:"uppercase",color:"rgba(255,200,170,.62)",
             fontFamily:"'Quicksand',sans-serif",marginBottom:"2px"}}>
             CON ĐƯỜNG TÌNH YÊU
           </p>
           <span style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
-            fontSize:"22px",fontWeight:700,color:"rgba(255,235,220,.97)",
-            textShadow:"0 1px 4px rgba(0,0,0,.4)",letterSpacing:".02em",
-            display:"block",lineHeight:1.2}}>
+            fontSize:"22px",fontWeight:700,color:"rgba(255,235,218,.97)",
+            textShadow:"0 1px 6px rgba(0,0,0,.45)",display:"block",lineHeight:1.2}}>
             Hành Trình Của Chúng Tôi
           </span>
         </div>
       </div>
 
-      {/* Canvas SVG */}
-      <div className="road3d-canvas" style={{height:`${totalH}px`,position:"relative"}}>
+      {/* ── Canvas SVG ── */}
+      <div style={{position:"relative",height:`${totalH}px`,overflow:"hidden"}}>
         <svg viewBox={`0 0 ${W} ${totalH}`}
-          style={{width:"100%",height:"100%",position:"absolute",top:0,left:0,overflow:"visible"}}>
+          style={{width:"100%",height:"100%",position:"absolute",
+            top:0,left:0,overflow:"visible",display:"block"}}>
+          <defs>
+            {/* Gradient nền trời */}
+            <linearGradient id="sky4" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stopColor="#fde4f0"/>
+              <stop offset="55%"  stopColor="#fdf2f8"/>
+              <stop offset="100%" stopColor="#fefafb"/>
+            </linearGradient>
+            {/* Gradient mặt đường */}
+            <linearGradient id="road4" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%"   stopColor="#b8a070"/>
+              <stop offset="40%"  stopColor="#d0b088"/>
+              <stop offset="100%" stopColor="#b8a070"/>
+            </linearGradient>
+            {/* Xe — gradients */}
+            <linearGradient id="carBod" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stopColor="#c02a40"/>
+              <stop offset="45%"  stopColor="#8a1a28"/>
+              <stop offset="100%" stopColor="#4a0812"/>
+            </linearGradient>
+            <linearGradient id="carTop" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stopColor="#9a2030"/>
+              <stop offset="100%" stopColor="#5a1018"/>
+            </linearGradient>
+            <linearGradient id="carGls" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%"   stopColor="rgba(180,230,255,.8)"/>
+              <stop offset="100%" stopColor="rgba(100,180,230,.45)"/>
+            </linearGradient>
+            <radialGradient id="carHdl" cx="30%" cy="30%" r="70%">
+              <stop offset="0%"   stopColor="#fffde0"/>
+              <stop offset="100%" stopColor="#e8c840"/>
+            </radialGradient>
+            <radialGradient id="carWhl" cx="50%" cy="30%" r="70%">
+              <stop offset="0%"   stopColor="#444"/>
+              <stop offset="100%" stopColor="#0a0a0a"/>
+            </radialGradient>
+            <linearGradient id="carRim" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%"   stopColor="#ddd"/>
+              <stop offset="100%" stopColor="#888"/>
+            </linearGradient>
+            <filter id="carFlt">
+              <feDropShadow dx="0" dy="3" stdDeviation="4"
+                floodColor="rgba(0,0,0,.35)" floodOpacity="1"/>
+            </filter>
+            {/* Path mà xe chạy theo — dùng href */}
+            <path id="carRoad" d={pathD}/>
+          </defs>
 
           {/* Nền */}
-          <rect x="0" y="0" width={W} height={totalH} fill="url(#skyG)"/>
+          <rect x="0" y="0" width={W} height={totalH} fill="url(#sky4)"/>
 
-          {/* Mây SVG thật (không dùng text emoji) */}
-          {[{cx:70,cy:30,s:1},{cx:280,cy:18,s:.8},{cx:370,cy:36,s:.7}].map((cl,i)=>(
+          {/* Mây */}
+          {[{x:55,y:20,s:1},{x:260,y:11,s:.82},{x:375,y:26,s:.72}].map((cl,i)=>(
             <g key={i} opacity=".3"
-              style={{animation:`cloudDrift ${18+i*6}s ease-in-out ${i*4}s infinite alternate`}}>
-              <ellipse cx={cl.cx}    cy={cl.cy}   rx={30*cl.s} ry={11*cl.s} fill="#fff"/>
-              <ellipse cx={cl.cx-15*cl.s} cy={cl.cy-5} rx={18*cl.s} ry={12*cl.s} fill="#fff"/>
-              <ellipse cx={cl.cx+12*cl.s} cy={cl.cy-7} rx={20*cl.s} ry={13*cl.s} fill="#fff"/>
-              <ellipse cx={cl.cx+4*cl.s}  cy={cl.cy-3} rx={12*cl.s} ry={9*cl.s}  fill="#fff"/>
+              style={{animation:`cloudDrift ${19+i*7}s ease-in-out ${i*5}s infinite alternate`}}>
+              <ellipse cx={cl.x}       cy={cl.y}    rx={30*cl.s} ry={10*cl.s} fill="#fff"/>
+              <ellipse cx={cl.x-14*cl.s} cy={cl.y-5} rx={18*cl.s} ry={11*cl.s} fill="#fff"/>
+              <ellipse cx={cl.x+11*cl.s} cy={cl.y-7} rx={20*cl.s} ry={12*cl.s} fill="#fff"/>
             </g>
           ))}
 
-          {/* ── ĐƯỜNG S - 5 lớp ── */}
-          {/* Lớp 1: bóng tối */}
-          <path d={pathD} fill="none" stroke="rgba(80,30,20,.15)"
-            strokeWidth={ROAD_W+16} strokeLinecap="round" strokeLinejoin="round"
-            transform="translate(5,7)"/>
-          {/* Lớp 2: cỏ lề */}
-          <path d={pathD} fill="none" stroke="#b8c888"
-            strokeWidth={ROAD_W+28} strokeLinecap="round" strokeLinejoin="round"/>
-          {/* Lớp 3: đất lề đường */}
-          <path d={pathD} fill="none" stroke="#c4a870"
-            strokeWidth={ROAD_W+12} strokeLinecap="round" strokeLinejoin="round"/>
-          {/* Lớp 4: mặt đường nhựa */}
-          <path d={pathD} fill="none" stroke="url(#roadG)"
-            strokeWidth={ROAD_W} strokeLinecap="round" strokeLinejoin="round"/>
-          {/* Lớp 5: vạch kẻ vàng giữa đường */}
-          <path d={pathD} fill="none" stroke="rgba(255,235,150,.75)"
-            strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"
-            strokeDasharray="16 12"/>
-          {/* Vạch trắng mép đường trái */}
-          <path d={pathD} fill="none" stroke="rgba(255,255,255,.45)"
-            strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
+          {/* ── ĐƯỜNG S — 5 lớp từ ngoài vào trong ── */}
+          {/* Lớp 1: Bóng đổ */}
+          <path d={pathD} fill="none" stroke="rgba(60,20,10,.13)"
+            strokeWidth={ROAD_W+18} strokeLinecap="round"
+            transform="translate(5,8)"/>
+          {/* Lớp 2: Cỏ xanh lề đường */}
+          <path d={pathD} fill="none" stroke="#a8c075"
+            strokeWidth={ROAD_W+30} strokeLinecap="round"/>
+          {/* Lớp 3: Đất lề (vỉa hè) */}
+          <path d={pathD} fill="none" stroke="#c0a068"
+            strokeWidth={ROAD_W+12} strokeLinecap="round"/>
+          {/* Lớp 4: Nhựa đường chính */}
+          <path d={pathD} fill="none" stroke="url(#road4)"
+            strokeWidth={ROAD_W} strokeLinecap="round"/>
+          {/* Lớp 5: Vạch kẻ vàng giữa đường */}
+          <path d={pathD} fill="none" stroke="rgba(255,228,100,.75)"
+            strokeWidth={2.5} strokeLinecap="round"
+            strokeDasharray="18 14"/>
+          {/* Lớp 6: Đường viền trắng 2 bên mép */}
+          <path d={pathD} fill="none" stroke="rgba(255,255,255,.35)"
+            strokeWidth={1} strokeLinecap="round"/>
 
-          {/* ── CÂY bên đường (SVG shapes thật) ── */}
+          {/* ── Cây SVG bên đường ── */}
           {stories.map((_, i) => {
-            const y    = rowY(i);
-            const isLR = i % 2 === 0;
-            // Cây ngoài lề đường — cạnh đối diện với card
-            const treeColors = [
-              ["#5a9040","#4a7830"],
-              ["#6aaa4a","#5a9040"],
-              ["#7ab850","#609040"],
-            ];
-            const [c1,c2] = treeColors[i%3];
-            const tx = isLR ? W - PAD_X + 24 : PAD_X - 24;
-            const tx2= isLR ? PAD_X - 20      : W - PAD_X + 20;
-
+            const y   = rowY(i);
+            const isLR= i%2===0;
+            // Cây ngoài lề — phía ngược với card
+            const tx  = isLR ? W-PAD_X+22 : PAD_X-22;
+            const c1  = ["#52883a","#64a848","#70b850"][i%3];
+            const c2  = ["#428030","#549038","#5ea040"][i%3];
+            const delay= `${i*0.45}s`;
             return (
               <React.Fragment key={i}>
                 {/* Cây chính */}
-                <g style={{animation:`treeWave 3s ease-in-out ${i*0.5}s infinite`}}>
-                  <rect  x={tx-3}  y={y+2}   width="6" height="18" rx="2" fill="#7a5030"/>
-                  <circle cx={tx}  cy={y-6}   r="14"  fill={c1} opacity=".9"/>
-                  <circle cx={tx-7} cy={y}    r="9"   fill={c2} opacity=".75"/>
-                  <circle cx={tx+7} cy={y+2}  r="8"   fill={c2} opacity=".75"/>
-                  <circle cx={tx}  cy={y-14}  r="9"   fill={c1} opacity=".7"/>
+                <g style={{animation:`treeWave 3.2s ease-in-out ${delay} infinite`}}
+                  transform={`translate(${tx},${y})`}>
+                  <rect x="-3" y="0"   width="6"  height="20" rx="2.5" fill="#6a4525"/>
+                  <circle cx="0" cy="-8"  r="14" fill={c1} opacity=".92"/>
+                  <circle cx="-8" cy="-2" r="9"  fill={c2} opacity=".78"/>
+                  <circle cx="8"  cy="-1" r="8.5"fill={c2} opacity=".78"/>
+                  <circle cx="0"  cy="-18"r="9"  fill={c1} opacity=".72"/>
                 </g>
-                {/* Cây nhỏ đoạn cong */}
-                {i < n-1 && (
-                  <g style={{animation:`treeWave 2.8s ease-in-out ${i*0.3+0.8}s infinite`}}>
-                    <rect  x={tx2-2}  y={rowY(i)+SEG_H/2+2} width="4" height="12" rx="1.5" fill="#8a6040"/>
-                    <circle cx={tx2} cy={rowY(i)+SEG_H/2-4} r="9"
-                      fill={treeColors[(i+1)%3][0]} opacity=".8"/>
+                {/* Cây nhỏ cạnh */}
+                {i<n-1&&(
+                  <g style={{animation:`treeWave 2.9s ease-in-out ${(Number(delay.replace('s',''))+0.7).toFixed(1)}s infinite`}}
+                    transform={`translate(${isLR?PAD_X-18:W-PAD_X+18},${y+SEG_H/2})`}>
+                    <rect x="-2" y="0" width="4" height="13" rx="1.5" fill="#7a5530"/>
+                    <circle cx="0" cy="-5" r="9" fill={c1} opacity=".8"/>
                   </g>
                 )}
                 {/* Hoa nhỏ */}
-                {i%2===0 && <circle cx={tx+18} cy={y+14} r="4" fill="#e86888" opacity=".6"/>}
-                {i%2===1 && <circle cx={tx-16} cy={y+12} r="3.5" fill="#e8a050" opacity=".55"/>}
+                {i%3===0&&<circle cx={isLR?W-PAD_X+35:PAD_X-35} cy={y+16} r="4.5"
+                  fill="#e86888" opacity=".6"/>}
+                {i%3===1&&<circle cx={isLR?W-PAD_X+35:PAD_X-35} cy={y+18} r="3.5"
+                  fill="#e8a050" opacity=".55"/>}
+                {i%3===2&&<circle cx={isLR?W-PAD_X+35:PAD_X-35} cy={y+14} r="4"
+                  fill="#d870c0" opacity=".5"/>}
               </React.Fragment>
             );
           })}
 
-          {/* ── PATH ẩn cho xe chạy (ref để JS dùng) ── */}
-          <path ref={pathRef} d={pathD} fill="none" stroke="none"/>
-
-          {/* ── XE 3D SVG (JS RAF điều khiển vị trí) ── */}
-          <g ref={carRef} filter="url(#carShadow)">
-            {/* Bóng xe dưới */}
-            <ellipse cx="0" cy="18" rx="28" ry="6" fill="rgba(0,0,0,.22)" opacity=".7"/>
-            {/* Thân dưới */}
-            <rect x="-30" y="-10" width="60" height="20" rx="7" fill="url(#carBodyG)"/>
-            {/* Viền chrome thân */}
-            <rect x="-30" y="-10" width="60" height="4" rx="3"
-              fill="rgba(255,255,255,.15)"/>
-            {/* Cabin */}
-            <rect x="-20" y="-24" width="42" height="16" rx="7" fill="url(#carTopG)"/>
-            {/* Kính trước nghiêng */}
-            <path d="M 18,-24 L 22,-24 L 24,-10 L 18,-10 Z"
-              fill="url(#carGlassG)" opacity=".85"/>
-            {/* Kính sau nghiêng */}
-            <path d="M -20,-24 L -16,-24 L -16,-10 L -20,-10 Z"
-              fill="rgba(150,210,255,.5)"/>
-            {/* Kính cửa sổ */}
-            <rect x="-14" y="-23" width="30" height="12" rx="3"
-              fill="url(#carGlassG)" opacity=".7"/>
-            {/* Đèn pha trước */}
-            <ellipse cx="29" cy="-3" rx="6" ry="4" fill="url(#headlightG)"/>
-            <ellipse cx="29" cy="-3" rx="3.5" ry="2.2" fill="rgba(255,252,200,.95)"/>
-            {/* Đèn hậu */}
-            <rect x="-32" y="-8" width="5" height="9" rx="2" fill="#cc2020"/>
-            <rect x="-32" y="-8" width="5" height="9" rx="2" fill="rgba(255,80,80,.5)"/>
-            {/* Bánh xe trước */}
-            <circle cx="18" cy="9" r="9" fill="#1a1a1a"/>
-            <circle cx="18" cy="9" r="6" fill="#383838"/>
-            <circle cx="18" cy="9" r="3" fill="#666"/>
-            <circle cx="18" cy="9" r="1.5" fill="#999"/>
-            {/* Bánh xe sau */}
-            <circle cx="-18" cy="9" r="9" fill="#1a1a1a"/>
-            <circle cx="-18" cy="9" r="6" fill="#383838"/>
-            <circle cx="-18" cy="9" r="3" fill="#666"/>
-            <circle cx="-18" cy="9" r="1.5" fill="#999"/>
-            {/* Gương chiếu hậu */}
-            <rect x="24" y="-22" width="8" height="5" rx="2" fill="#7a1520"/>
-            <rect x="24" y="-22" width="8" height="5" rx="2" fill="rgba(100,180,230,.4)"/>
-            {/* Nóc chrome viền */}
-            <path d="M -20,-24 L 22,-24" stroke="rgba(255,255,255,.2)" strokeWidth="1.5" fill="none"/>
-          </g>
-
-          {/* ── MILESTONE ICONS ── */}
+          {/* ── Milestone icons ── */}
           {stories.map((s, i) => {
-            const y    = rowY(i);
-            const isLR = i % 2 === 0;
-            const ix   = isLR ? PAD_X + 44 : W - PAD_X - 44;
+            const y   = rowY(i);
+            const isLR= i%2===0;
+            const ix  = isLR ? PAD_X+48 : W-PAD_X-48;
             return (
               <g key={i}>
                 {/* Cột */}
                 <rect x={ix-2.5} y={y} width="5" height="30" rx="2.5"
-                  fill="#8a6040" opacity=".8"/>
-                {/* Vòng ngoài glow */}
-                <circle cx={ix} cy={y-20} r="26"
-                  fill="rgba(99,23,23,.08)" stroke="rgba(99,23,23,.15)" strokeWidth="2"/>
+                  fill="#7a5530" opacity=".8"/>
+                {/* Glow vòng ngoài */}
+                <circle cx={ix} cy={y-22} r="26"
+                  fill="rgba(99,23,23,.07)" stroke="rgba(99,23,23,.1)" strokeWidth="2"/>
                 {/* Vòng chính */}
-                <circle cx={ix} cy={y-20} r="20"
-                  fill="url(#carBodyG)"
-                  stroke="rgba(255,180,160,.45)" strokeWidth="2.5"/>
+                <circle cx={ix} cy={y-22} r="20" fill="url(#carBod)"
+                  stroke="rgba(255,175,155,.45)" strokeWidth="2.5"/>
+                {/* Viền trong sáng */}
+                <circle cx={ix} cy={y-22} r="17"
+                  fill="none" stroke="rgba(255,255,255,.08)" strokeWidth="1"/>
                 {/* Emoji */}
-                <text x={ix} y={y-13} textAnchor="middle"
-                  fontSize="16" dominantBaseline="middle">{s.emoji||"❤️"}</text>
+                <text x={ix} y={y-15} textAnchor="middle"
+                  fontSize="17" dominantBaseline="middle">{s.emoji||"❤️"}</text>
                 {/* Số thứ tự */}
-                <circle cx={ix+14} cy={y-36} r="9" fill="#fff"
-                  stroke="#9a2a2a" strokeWidth="1.5"/>
-                <text x={ix+14} y={y-32} textAnchor="middle"
+                <circle cx={ix+14} cy={y-38} r="9"
+                  fill="#fff" stroke="#8a1a28" strokeWidth="1.5"/>
+                <text x={ix+14} y={y-34} textAnchor="middle"
                   fontSize="9" fontWeight="800" fill="#631717"
                   fontFamily="Cinzel,serif">{i+1}</text>
               </g>
             );
           })}
+
+          {/* ═══════════════════════════════════════════
+              XE SVG ĐẲNG CẤP — Sports car nhìn từ góc nghiêng 3/4
+              animateMotion + rotate="auto-reverse" → tự xoay đúng hướng
+              ═══════════════════════════════════════════ */}
+          <g filter="url(#carFlt)">
+            {/* Bóng dưới xe */}
+            <ellipse rx="30" ry="7" fill="rgba(0,0,0,.25)" opacity=".8">
+              <animateMotion dur={DUR} repeatCount="indefinite" rotate="auto">
+                <mpath href="#carRoad"/>
+              </animateMotion>
+            </ellipse>
+          </g>
+
+          <g>
+            {/* === Xe sports car view 3/4 === */}
+            <g id="carBody">
+              {/* Thân dưới rộng */}
+              <path d="M-28,-5 Q-30,0 -28,8 L28,8 Q32,4 30,-2 Q20,-10 0,-11 Q-15,-11 -28,-5 Z"
+                fill="url(#carBod)"/>
+              {/* Váy xe thấp */}
+              <path d="M-28,5 L28,5 L28,10 Q20,13 0,13 Q-16,13 -28,10 Z"
+                fill="#3a0810"/>
+              {/* Cabin/nóc */}
+              <path d="M-18,-5 Q-14,-18 -6,-20 L14,-20 Q22,-18 24,-8 L22,-5 Z"
+                fill="url(#carTop)"/>
+              {/* Kính trước nghiêng (sports) */}
+              <path d="M14,-20 Q22,-18 24,-8 L20,-7 Q16,-16 10,-18 Z"
+                fill="url(#carGls)" opacity=".85"/>
+              {/* Kính hậu */}
+              <path d="M-18,-5 Q-14,-18 -10,-19 L-6,-20 Q-12,-16 -16,-6 Z"
+                fill="url(#carGls)" opacity=".65"/>
+              {/* Kính sườn */}
+              <path d="M-16,-6 Q-10,-17 -4,-19 L12,-19 Q18,-16 20,-7 L16,-6 Z"
+                fill="url(#carGls)" opacity=".72"/>
+              {/* Đường line thân chrome */}
+              <path d="M-26,-2 Q-10,-8 30,-1"
+                fill="none" stroke="rgba(255,230,180,.4)" strokeWidth="1.5"/>
+              {/* Cửa sổ viền */}
+              <path d="M-15,-6 L16,-6 L20,-7 L12,-18 L-6,-19 L-16,-7 Z"
+                fill="none" stroke="rgba(255,255,255,.15)" strokeWidth="1"/>
+              {/* Đèn pha LED (trước) */}
+              <path d="M26,-4 Q32,-3 32,2 Q28,5 24,4 L22,0 Z"
+                fill="url(#carHdl)"/>
+              {/* Tia sáng đèn */}
+              <line x1="33" y1="-1" x2="38" y2="-3"
+                stroke="#ffe880" strokeWidth="1.5" opacity=".7" strokeLinecap="round"/>
+              <line x1="33" y1="2" x2="38" y2="2"
+                stroke="#ffe880" strokeWidth="1" opacity=".5" strokeLinecap="round"/>
+              {/* Đèn hậu đỏ */}
+              <path d="M-30,-3 Q-34,-1 -34,4 Q-32,7 -28,6 L-28,2 Z"
+                fill="#dd1818" opacity=".95"/>
+              <path d="M-30,-3 Q-34,-1 -34,4 Q-32,7 -28,6 L-28,2 Z"
+                fill="rgba(255,80,80,.4)"/>
+              {/* Grille */}
+              <path d="M28,-3 Q34,-2 34,2 Q32,5 28,4"
+                fill="none" stroke="#222" strokeWidth="3.5" strokeLinecap="round"/>
+              <path d="M29,-2 Q34,0 33,3"
+                fill="none" stroke="#888" strokeWidth="1.2" strokeLinecap="round"/>
+              {/* Gương chiếu hậu thể thao */}
+              <rect x="18" y="-14" width="8" height="5" rx="1.5"
+                fill="#5a1018"/>
+              <rect x="18" y="-14" width="8" height="5" rx="1.5"
+                fill="url(#carGls)" opacity=".4"/>
+              {/* Spoiler sau */}
+              <rect x="-34" y="-8" width="8" height="3" rx="1.5"
+                fill="#3a0810"/>
+              <rect x="-36" y="-7" width="12" height="1.5" rx=".8"
+                fill="#888"/>
+              {/* Logo giữa thân */}
+              <circle cx="-2" cy="0" r="3" fill="rgba(220,170,100,.3)"
+                stroke="rgba(220,170,100,.6)" strokeWidth="1"/>
+            </g>
+
+            {/* Bánh xe trước */}
+            <g transform="translate(16,8)">
+              <circle r="10"  fill="url(#carWhl)"/>
+              <circle r="6.8" fill="#2a2a2a"/>
+              <circle r="3.5" fill="url(#carRim)"/>
+              <circle r="1.5" fill="#bbb"/>
+              {/* Nan hoa (5 cánh) */}
+              {[0,72,144,216,288].map(a=>(
+                <line key={a}
+                  x1={Math.cos(a*Math.PI/180)*3.5} y1={Math.sin(a*Math.PI/180)*3.5}
+                  x2={Math.cos(a*Math.PI/180)*6.5} y2={Math.sin(a*Math.PI/180)*6.5}
+                  stroke="url(#carRim)" strokeWidth="2" strokeLinecap="round"/>
+              ))}
+            </g>
+            {/* Bánh xe sau */}
+            <g transform="translate(-16,8)">
+              <circle r="10"  fill="url(#carWhl)"/>
+              <circle r="6.8" fill="#2a2a2a"/>
+              <circle r="3.5" fill="url(#carRim)"/>
+              <circle r="1.5" fill="#bbb"/>
+              {[0,72,144,216,288].map(a=>(
+                <line key={a}
+                  x1={Math.cos(a*Math.PI/180)*3.5} y1={Math.sin(a*Math.PI/180)*3.5}
+                  x2={Math.cos(a*Math.PI/180)*6.5} y2={Math.sin(a*Math.PI/180)*6.5}
+                  stroke="url(#carRim)" strokeWidth="2" strokeLinecap="round"/>
+              ))}
+            </g>
+
+            {/* animateMotion — xe đi theo path, tự xoay đúng hướng */}
+            <animateMotion dur={DUR} repeatCount="indefinite" rotate="auto">
+              <mpath href="#carRoad"/>
+            </animateMotion>
+          </g>
+
         </svg>
 
-        {/* ── CARDS HTML overlay ── */}
+        {/* ── Cards glassmorphism ── */}
         {stories.map((s, i) => {
           const y    = rowY(i);
-          const isLR = i % 2 === 0;
-          const ix   = isLR ? PAD_X + 44 : W - PAD_X - 44;
-          const ixPct= (ix / W * 100).toFixed(1);
-          const cardTopPct = ((y - 58) / totalH * 100).toFixed(1);
-
+          const isLR = i%2===0;
+          const ix   = isLR ? PAD_X+48 : W-PAD_X-48;
+          const ixPct= (ix/W*100).toFixed(1);
           return (
-            <Rv key={i} dir={isLR?"r":"l"} delay={i*0.07}>
+            <Rv key={i} dir={isLR?"r":"l"} delay={i*0.08}>
               <div style={{
                 position:"absolute",
-                top:`${y - 58}px`,
+                top:`${y-56}px`,
+                background:"rgba(253,244,248,.9)",
+                backdropFilter:"blur(8px)",
+                WebkitBackdropFilter:"blur(8px)",
+                border:"1px solid rgba(99,23,23,.1)",
+                borderRadius:"12px",
+                padding:"9px 12px",
+                boxShadow:"0 4px 18px rgba(99,23,23,.1),0 1px 4px rgba(0,0,0,.04)",
+                zIndex:3,
+                maxWidth:"145px",
                 ...(isLR
                   ? {left:`calc(${ixPct}% + 28px)`, right:"14px"}
                   : {right:`calc(${(100-Number(ixPct)).toFixed(1)}% + 28px)`, left:"14px"}
                 ),
-                background:"rgba(255,255,255,.97)",
-                backdropFilter:"blur(8px)",
-                border:"1px solid rgba(99,23,23,.1)",
-                borderRadius:"14px",
-                padding:"10px 13px",
-                boxShadow:"0 6px 22px rgba(99,23,23,.1),0 2px 6px rgba(0,0,0,.05)",
-                zIndex:3,
               }}>
-                <div style={{fontSize:"8px",fontWeight:700,letterSpacing:".18em",
+                <div style={{fontSize:"7.5px",fontWeight:700,letterSpacing:".18em",
                   textTransform:"uppercase",color:"#9a2a2a",
                   fontFamily:"'Quicksand',sans-serif",marginBottom:"2px"}}>{s.date}</div>
                 <div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
-                  fontSize:"13.5px",fontWeight:700,color:"#3a0e18",
+                  fontSize:"13px",fontWeight:700,color:"#3a0e18",
                   lineHeight:1.3,marginBottom:"3px"}}>{s.title}</div>
-                {s.body&&<div style={{fontSize:"9.5px",color:"#8a5050",
-                  fontFamily:"'Quicksand',sans-serif",lineHeight:1.55}}>{s.body}</div>}
+                {s.body&&<div style={{fontSize:"9px",color:"#8a5050",
+                  fontFamily:"'Quicksand',sans-serif",lineHeight:1.5}}>{s.body}</div>}
               </div>
             </Rv>
           );
         })}
       </div>
-      <div style={{height:"20px"}}/>
+
+      <div style={{height:"22px"}}/>
     </div>
   );
 }
